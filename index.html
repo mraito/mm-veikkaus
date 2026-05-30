@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>MM-Veikkaus '26</title>
+
+<!-- ===================================================================== -->
+<!--  FIREBASE-ASETUKSET — KORVAA NÄMÄ OMILLA (ks. README, vaihe 3)        -->
+<!-- ===================================================================== -->
+<script>
+  window.FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCeTK0PkYQDaF9eAszW367PqVENqTRxNyY",
+    authDomain: "mm-veikkaus-6d33c.firebaseapp.com",
+    projectId: "mm-veikkaus-6d33c",
+    storageBucket: "mm-veikkaus-6d33c.firebasestorage.app",
+    messagingSenderId: "317872956786",
+    appId: "1:317872956786:web:a2c1996d4b8abbb54f69eb"
+  };
+</script>
+<!-- ===================================================================== -->
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@500;600&display=swap');
+:root{
+  --bg:#0a1410; --panel:#10231b; --panel2:#0d1c16; --line:#1f3a2e;
+  --ink:#eafff3; --mut:#7fae97; --grn:#39e57c; --grn2:#1f7d49;
+  --amb:#ffcf3f; --amb2:#a9851a; --red:#ff5d52; --teal:#9be8b7; --grey:#6e7c76;
+  --alive:#1a3a28;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Hanken Grotesk',sans-serif;color:var(--ink);
+  background:radial-gradient(1200px 600px at 80% -10%,#133024 0,transparent 60%),
+  radial-gradient(900px 500px at -10% 110%,#102a1f 0,transparent 55%),var(--bg);min-height:100vh;line-height:1.45;}
+.mono{font-family:'Spline Sans Mono',monospace}
+h1,h2,.disp{font-family:'Anton',sans-serif;font-weight:400;letter-spacing:.02em;text-transform:uppercase}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 90px}
+.hero{padding:28px 0 14px;border-bottom:1px solid var(--line)}
+.kick{color:var(--grn);font-weight:800;letter-spacing:.2em;font-size:11px;text-transform:uppercase}
+.title{font-size:clamp(32px,7vw,58px);line-height:.92;margin:6px 0 4px}
+.title em{font-style:normal;color:var(--grn)}
+.sub{color:var(--mut);font-size:14px;max-width:600px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:0;z-index:20;
+  background:linear-gradient(var(--bg),rgba(10,20,16,.85));backdrop-filter:blur(8px);
+  padding:12px 0;margin-bottom:6px;border-bottom:1px solid var(--line)}
+.tab{font-family:inherit;font-weight:700;font-size:14px;padding:9px 14px;border-radius:999px;border:1px solid var(--line);
+  background:transparent;color:var(--mut);cursor:pointer;transition:.15s}
+.tab:hover{color:var(--ink);border-color:var(--grn2)}
+.tab.on{background:var(--grn);color:#04150c;border-color:var(--grn)}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+  border-radius:16px;padding:18px;margin:14px 0}
+.row{display:flex;align-items:center;gap:10px}
+.between{justify-content:space-between}
+.wrapf{flex-wrap:wrap}
+.lab{color:var(--mut);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.tiny{font-size:12px;color:var(--mut)}
+input,select{font-family:inherit;font-size:15px;color:var(--ink);background:#081410;
+  border:1px solid var(--line);border-radius:10px;padding:9px 11px;outline:none}
+input:focus,select:focus{border-color:var(--grn)}
+.sc{width:46px;text-align:center;font-family:'Spline Sans Mono',monospace;font-size:17px;padding:8px 4px}
+button.act{font-family:inherit;font-weight:800;background:var(--grn);color:#04150c;border:none;border-radius:11px;padding:11px 18px;cursor:pointer;font-size:15px}
+button.act:hover{filter:brightness(1.08)}
+button.act:disabled{opacity:.5;cursor:not-allowed}
+button.ghost{font-family:inherit;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:9px 15px;cursor:pointer;font-weight:700}
+button.ghost:hover{border-color:var(--grn)}
+.note{font-size:13px;color:var(--mut);background:rgba(57,229,124,.05);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0}
+.warn{color:var(--amb)}
+.err{color:var(--red)}
+.divider{height:1px;background:var(--line);margin:14px 0}
+.section-h{font-size:13px;color:var(--grn);font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin:14px 0 4px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.match{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:11px 0;border-bottom:1px dashed var(--line)}
+.match:last-child{border-bottom:none}
+.tm{font-weight:700;font-size:15px}.tm.r{text-align:right}
+.pill{font-size:11px;font-weight:800;padding:2px 7px;border-radius:999px}
+.pill.g{background:rgba(57,229,124,.16);color:var(--grn)}
+.pill.g2{background:rgba(57,229,124,.10);color:var(--teal)}
+.pill.y{background:rgba(255,207,63,.16);color:var(--amb)}
+.pill.z{background:rgba(255,93,82,.13);color:var(--red)}
+.pill.dbl{background:rgba(255,207,63,.18);color:var(--amb);border:1px solid var(--amb2)}
+.kpi{font-family:'Anton';font-size:30px;line-height:1}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.statline{display:grid;grid-template-columns:1fr repeat(5,52px);gap:6px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line)}
+.statline.head{color:var(--mut);font-size:11px;font-weight:800;text-transform:uppercase}
+.statline input{width:100%;padding:6px;text-align:center}
+
+/* ---- pelaaja/maa-solu ---- */
+.cellbox{background:var(--alive);border-radius:10px;padding:8px 10px;min-height:52px}
+.cellbox.out{background:#181f1c}
+.cellbox .nm{font-weight:700;font-size:15px}
+.cellbox.out .nm{color:var(--mut)}
+.cellbox .pts{font-family:'Spline Sans Mono';font-size:12px;color:var(--teal);font-weight:600}
+.cellbox.out .pts{color:var(--grey)}
+.flag{font-size:16px;margin-right:5px}
+
+/* ---- kärkitaulu: leveä pöytä ---- */
+.lb-wide{display:none}
+.lb-cards{display:block}
+@media(min-width:880px){ .lb-wide{display:block} .lb-cards{display:none} }
+.lbtable{width:100%;border-collapse:separate;border-spacing:0 0}
+.lbtable th{color:var(--mut);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;text-align:left;padding:8px 8px}
+.lbtable td{padding:8px 8px;border-top:1px solid var(--line);vertical-align:middle}
+.lbtable tr.top td{background:rgba(26,56,41,.5)}
+.rank{font-family:'Anton';font-size:20px;color:var(--grn)}
+.rank.gold{color:var(--amb)}
+.nm-tot{display:flex;flex-direction:column}
+.tot{font-family:'Spline Sans Mono';font-weight:600;font-size:20px}
+
+/* ---- kärkitaulu: kortit ---- */
+.pcard{border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,var(--panel),var(--panel2));padding:14px;margin:12px 0;position:relative;overflow:hidden}
+.pcard.top{border-color:var(--grn2)}
+.pcard .bar{position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--grn)}
+.pcard .hd{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.prow{display:grid;grid-template-columns:96px 1fr auto;gap:8px;align-items:center;padding:7px 6px;margin-top:8px;border-radius:10px;background:var(--alive)}
+.prow.out{background:#181f1c}
+.prow .poslab{font-size:11px;font-weight:800;color:var(--mut);text-transform:uppercase}
+.prow.champ .poslab{color:var(--amb)}
+.chev{color:var(--grn);font-weight:800;font-size:16px;margin-left:6px}
+.liverow{padding:9px 0;border-bottom:1px dashed var(--line)}.liverow:last-child{border-bottom:none}
+.predchip{display:inline-flex;gap:5px;align-items:center;background:#13281e;border:1px solid var(--line);border-radius:9px;padding:3px 8px;font-size:12px;font-weight:700}
+.predchip .s{font-family:'Spline Sans Mono';color:var(--teal);font-weight:600}
+.morechip{background:rgba(57,229,124,.12);border:1px solid var(--grn);color:var(--grn);border-radius:9px;padding:4px 10px;font-size:12px;font-weight:800;cursor:pointer}
+.chd{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center}
+.cflag{font-size:22px;line-height:1}
+.cname{font-weight:800;font-size:18px;display:inline-flex;align-items:center;gap:6px;min-width:0}
+.nmcol{min-width:0}
+.jrow{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.jpill{background:var(--alive);border-radius:10px;padding:5px 12px;font-weight:700;font-size:13px;color:var(--teal)}
+.medal{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#1a1400;flex:0 0 auto}
+.medal.g{background:#f5c43a}.medal.s{background:#c4cad2}.medal.b{background:#c48048}
+.potbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:14px 18px;margin:14px 0}
+.pottot{font-family:'Anton';font-size:26px;color:#f5c43a;line-height:1}
+.tiers{display:flex;gap:8px;flex-wrap:wrap}
+.tier{display:flex;align-items:center;gap:8px;background:var(--alive);border-radius:10px;padding:8px 12px}
+.teur{font-family:'Spline Sans Mono';font-weight:700;font-size:15px}
+.livewrap{display:block}
+@media(min-width:880px){.livewrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}.livewrap>.card{margin:14px 0 0}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useCallback, Fragment } = React;
+
+/* ===================== DATA ===================== */
+const GROUPS = {
+  A:["Meksiko","Etelä-Afrikka","Etelä-Korea","Tšekki"],
+  B:["Kanada","Bosnia-Hertsegovina","Qatar","Sveitsi"],
+  C:["Brasilia","Marokko","Haiti","Skotlanti"],
+  D:["Yhdysvallat","Paraguay","Australia","Turkki"],
+  E:["Saksa","Curaçao","Norsunluurannikko","Ecuador"],
+  F:["Alankomaat","Japani","Ruotsi","Tunisia"],
+  G:["Belgia","Egypti","Iran","Uusi-Seelanti"],
+  H:["Espanja","Kap Verde","Saudi-Arabia","Uruguay"],
+  I:["Ranska","Senegal","Irak","Norja"],
+  J:["Argentiina","Algeria","Itävalta","Jordania"],
+  K:["Portugali","Kongon dem. tasavalta","Uzbekistan","Kolumbia"],
+  L:["Englanti","Kroatia","Ghana","Panama"],
+};
+const ALL_TEAMS = Object.values(GROUPS).flat().sort((a,b)=>a.localeCompare(b,"fi"));
+const ISO = {"Meksiko":"MX","Etelä-Afrikka":"ZA","Etelä-Korea":"KR","Tšekki":"CZ","Kanada":"CA","Bosnia-Hertsegovina":"BA","Qatar":"QA","Sveitsi":"CH","Brasilia":"BR","Marokko":"MA","Haiti":"HT","Yhdysvallat":"US","Paraguay":"PY","Australia":"AU","Turkki":"TR","Saksa":"DE","Curaçao":"CW","Norsunluurannikko":"CI","Ecuador":"EC","Alankomaat":"NL","Japani":"JP","Ruotsi":"SE","Tunisia":"TN","Belgia":"BE","Egypti":"EG","Iran":"IR","Uusi-Seelanti":"NZ","Espanja":"ES","Kap Verde":"CV","Saudi-Arabia":"SA","Uruguay":"UY","Ranska":"FR","Senegal":"SN","Irak":"IQ","Norja":"NO","Argentiina":"AR","Algeria":"DZ","Itävalta":"AT","Jordania":"JO","Portugali":"PT","Kongon dem. tasavalta":"CD","Uzbekistan":"UZ","Kolumbia":"CO","Kroatia":"HR","Ghana":"GH","Panama":"PA"};
+const FLAG_SPECIAL = {"Englanti":"🏴\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}","Skotlanti":"🏴\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}"};
+function flag(team){ if(!team) return ""; if(FLAG_SPECIAL[team]) return FLAG_SPECIAL[team];
+  const cc=ISO[team]; if(!cc) return ""; return cc.replace(/./g,c=>String.fromCodePoint(127397+c.charCodeAt(0))); }
+
+const POS = {
+  MV:{label:"Maalivahti",cs:6,goal:8,assist:6,red:-3,og:-2},
+  P:{label:"Puolustaja",cs:3,goal:7,assist:3,red:-3,og:-2},
+  KK:{label:"Keskikenttä",cs:1,goal:6,assist:3,red:-3,og:-2},
+  H:{label:"Hyökkääjä",cs:0,goal:5,assist:3,red:-3,og:-2},
+};
+const POS_ORDER=["MV","P","KK","H"];
+const WIN_POINTS=5, CHAMP_POINTS=10;
+
+const FIXTURES=[
+{id:1,date:"2026-06-11",group:"A",home:"Meksiko",away:"Etelä-Afrikka",hg:"",ag:"",dbl:false},
+{id:2,date:"2026-06-11",group:"A",home:"Etelä-Korea",away:"Tšekki",hg:"",ag:"",dbl:false},
+{id:3,date:"2026-06-12",group:"B",home:"Kanada",away:"Bosnia-Hertsegovina",hg:"",ag:"",dbl:false},
+{id:4,date:"2026-06-12",group:"D",home:"Yhdysvallat",away:"Paraguay",hg:"",ag:"",dbl:false},
+{id:5,date:"2026-06-13",group:"B",home:"Qatar",away:"Sveitsi",hg:"",ag:"",dbl:false},
+{id:6,date:"2026-06-13",group:"C",home:"Brasilia",away:"Marokko",hg:"",ag:"",dbl:false},
+{id:7,date:"2026-06-13",group:"C",home:"Haiti",away:"Skotlanti",hg:"",ag:"",dbl:false},
+{id:8,date:"2026-06-13",group:"D",home:"Australia",away:"Turkki",hg:"",ag:"",dbl:false},
+{id:9,date:"2026-06-14",group:"E",home:"Saksa",away:"Curaçao",hg:"",ag:"",dbl:false},
+{id:10,date:"2026-06-14",group:"F",home:"Alankomaat",away:"Japani",hg:"",ag:"",dbl:false},
+{id:11,date:"2026-06-14",group:"E",home:"Norsunluurannikko",away:"Ecuador",hg:"",ag:"",dbl:false},
+{id:12,date:"2026-06-14",group:"F",home:"Ruotsi",away:"Tunisia",hg:"",ag:"",dbl:false},
+{id:13,date:"2026-06-15",group:"H",home:"Espanja",away:"Kap Verde",hg:"",ag:"",dbl:false},
+{id:14,date:"2026-06-15",group:"G",home:"Belgia",away:"Egypti",hg:"",ag:"",dbl:false},
+{id:15,date:"2026-06-15",group:"H",home:"Saudi-Arabia",away:"Uruguay",hg:"",ag:"",dbl:false},
+{id:16,date:"2026-06-15",group:"G",home:"Iran",away:"Uusi-Seelanti",hg:"",ag:"",dbl:false},
+{id:17,date:"2026-06-16",group:"I",home:"Ranska",away:"Senegal",hg:"",ag:"",dbl:false},
+{id:18,date:"2026-06-16",group:"I",home:"Irak",away:"Norja",hg:"",ag:"",dbl:false},
+{id:19,date:"2026-06-16",group:"J",home:"Argentiina",away:"Algeria",hg:"",ag:"",dbl:false},
+{id:20,date:"2026-06-16",group:"J",home:"Itävalta",away:"Jordania",hg:"",ag:"",dbl:false},
+{id:21,date:"2026-06-17",group:"K",home:"Portugali",away:"Kongon dem. tasavalta",hg:"",ag:"",dbl:false},
+{id:22,date:"2026-06-17",group:"L",home:"Englanti",away:"Kroatia",hg:"",ag:"",dbl:false},
+{id:23,date:"2026-06-17",group:"L",home:"Ghana",away:"Panama",hg:"",ag:"",dbl:false},
+{id:24,date:"2026-06-17",group:"K",home:"Uzbekistan",away:"Kolumbia",hg:"",ag:"",dbl:false},
+{id:25,date:"2026-06-18",group:"A",home:"Tšekki",away:"Etelä-Afrikka",hg:"",ag:"",dbl:false},
+{id:26,date:"2026-06-18",group:"B",home:"Sveitsi",away:"Bosnia-Hertsegovina",hg:"",ag:"",dbl:false},
+{id:27,date:"2026-06-18",group:"B",home:"Kanada",away:"Qatar",hg:"",ag:"",dbl:false},
+{id:28,date:"2026-06-18",group:"A",home:"Meksiko",away:"Etelä-Korea",hg:"",ag:"",dbl:false},
+{id:29,date:"2026-06-19",group:"D",home:"Yhdysvallat",away:"Australia",hg:"",ag:"",dbl:false},
+{id:30,date:"2026-06-19",group:"C",home:"Skotlanti",away:"Marokko",hg:"",ag:"",dbl:false},
+{id:31,date:"2026-06-19",group:"C",home:"Brasilia",away:"Haiti",hg:"",ag:"",dbl:false},
+{id:32,date:"2026-06-19",group:"D",home:"Turkki",away:"Paraguay",hg:"",ag:"",dbl:false},
+{id:33,date:"2026-06-20",group:"F",home:"Alankomaat",away:"Ruotsi",hg:"",ag:"",dbl:false},
+{id:34,date:"2026-06-20",group:"E",home:"Saksa",away:"Norsunluurannikko",hg:"",ag:"",dbl:false},
+{id:35,date:"2026-06-20",group:"E",home:"Ecuador",away:"Curaçao",hg:"",ag:"",dbl:false},
+{id:36,date:"2026-06-20",group:"F",home:"Tunisia",away:"Japani",hg:"",ag:"",dbl:false},
+{id:37,date:"2026-06-21",group:"H",home:"Espanja",away:"Saudi-Arabia",hg:"",ag:"",dbl:false},
+{id:38,date:"2026-06-21",group:"G",home:"Belgia",away:"Iran",hg:"",ag:"",dbl:false},
+{id:39,date:"2026-06-21",group:"H",home:"Uruguay",away:"Kap Verde",hg:"",ag:"",dbl:false},
+{id:40,date:"2026-06-21",group:"G",home:"Uusi-Seelanti",away:"Egypti",hg:"",ag:"",dbl:false},
+{id:41,date:"2026-06-22",group:"J",home:"Argentiina",away:"Itävalta",hg:"",ag:"",dbl:false},
+{id:42,date:"2026-06-22",group:"I",home:"Ranska",away:"Irak",hg:"",ag:"",dbl:false},
+{id:43,date:"2026-06-22",group:"I",home:"Norja",away:"Senegal",hg:"",ag:"",dbl:false},
+{id:44,date:"2026-06-22",group:"J",home:"Jordania",away:"Algeria",hg:"",ag:"",dbl:false},
+{id:45,date:"2026-06-23",group:"K",home:"Portugali",away:"Uzbekistan",hg:"",ag:"",dbl:false},
+{id:46,date:"2026-06-23",group:"L",home:"Englanti",away:"Ghana",hg:"",ag:"",dbl:false},
+{id:47,date:"2026-06-23",group:"L",home:"Panama",away:"Kroatia",hg:"",ag:"",dbl:false},
+{id:48,date:"2026-06-23",group:"K",home:"Kolumbia",away:"Kongon dem. tasavalta",hg:"",ag:"",dbl:false},
+{id:49,date:"2026-06-24",group:"B",home:"Sveitsi",away:"Kanada",hg:"",ag:"",dbl:false},
+{id:50,date:"2026-06-24",group:"B",home:"Bosnia-Hertsegovina",away:"Qatar",hg:"",ag:"",dbl:false},
+{id:51,date:"2026-06-24",group:"C",home:"Skotlanti",away:"Brasilia",hg:"",ag:"",dbl:false},
+{id:52,date:"2026-06-24",group:"C",home:"Marokko",away:"Haiti",hg:"",ag:"",dbl:false},
+{id:53,date:"2026-06-24",group:"A",home:"Tšekki",away:"Meksiko",hg:"",ag:"",dbl:false},
+{id:54,date:"2026-06-24",group:"A",home:"Etelä-Afrikka",away:"Etelä-Korea",hg:"",ag:"",dbl:false},
+{id:55,date:"2026-06-25",group:"E",home:"Ecuador",away:"Saksa",hg:"",ag:"",dbl:false},
+{id:56,date:"2026-06-25",group:"E",home:"Curaçao",away:"Norsunluurannikko",hg:"",ag:"",dbl:false},
+{id:57,date:"2026-06-25",group:"F",home:"Japani",away:"Ruotsi",hg:"",ag:"",dbl:false},
+{id:58,date:"2026-06-25",group:"F",home:"Tunisia",away:"Alankomaat",hg:"",ag:"",dbl:false},
+{id:59,date:"2026-06-25",group:"D",home:"Turkki",away:"Yhdysvallat",hg:"",ag:"",dbl:false},
+{id:60,date:"2026-06-25",group:"D",home:"Paraguay",away:"Australia",hg:"",ag:"",dbl:false},
+{id:61,date:"2026-06-26",group:"I",home:"Norja",away:"Ranska",hg:"",ag:"",dbl:false},
+{id:62,date:"2026-06-26",group:"I",home:"Senegal",away:"Irak",hg:"",ag:"",dbl:false},
+{id:63,date:"2026-06-26",group:"H",home:"Kap Verde",away:"Saudi-Arabia",hg:"",ag:"",dbl:false},
+{id:64,date:"2026-06-26",group:"H",home:"Uruguay",away:"Espanja",hg:"",ag:"",dbl:false},
+{id:65,date:"2026-06-26",group:"G",home:"Egypti",away:"Iran",hg:"",ag:"",dbl:false},
+{id:66,date:"2026-06-26",group:"G",home:"Uusi-Seelanti",away:"Belgia",hg:"",ag:"",dbl:false},
+{id:67,date:"2026-06-27",group:"L",home:"Panama",away:"Englanti",hg:"",ag:"",dbl:false},
+{id:68,date:"2026-06-27",group:"L",home:"Kroatia",away:"Ghana",hg:"",ag:"",dbl:false},
+{id:69,date:"2026-06-27",group:"K",home:"Kolumbia",away:"Portugali",hg:"",ag:"",dbl:false},
+{id:70,date:"2026-06-27",group:"K",home:"Kongon dem. tasavalta",away:"Uzbekistan",hg:"",ag:"",dbl:false},
+{id:71,date:"2026-06-27",group:"J",home:"Algeria",away:"Itävalta",hg:"",ag:"",dbl:false},
+{id:72,date:"2026-06-27",group:"J",home:"Jordania",away:"Argentiina",hg:"",ag:"",dbl:false}
+];
+function buildSeedMatches(){ return FIXTURES.map(m=>({...m})); }
+function todayISO(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+const WD=["su","ma","ti","ke","to","pe","la"];
+function dateLabel(ds,ts){ const d=new Date(ds+"T12:00:00"),t=new Date(ts+"T12:00:00"); const diff=Math.round((d-t)/86400000);
+  if(diff===0)return"tänään"; if(diff===1)return"huomenna"; if(diff===-1)return"eilen"; if(diff===2)return"ylihuomenna";
+  return WD[d.getDay()]+" "+d.getDate()+"."+(d.getMonth()+1)+"."; }
+
+/* ===================== PISTEYTYS ===================== */
+const sign=x=>x>0?1:x<0?-1:0;
+function matchPoints(pred,m){
+  if(!pred||pred.h===""||pred.a===""||pred.h==null||pred.a==null) return null;
+  if(m.hg===""||m.ag===""||m.hg==null||m.ag==null) return null;
+  const ph=+pred.h,pa=+pred.a,ah=+m.hg,aa=+m.ag; let base=0;
+  if(sign(ph-pa)===sign(ah-aa)){ const hits=(ph===ah?1:0)+(pa===aa?1:0); base=hits===2?5:hits===1?4:3; }
+  return m.dbl?base*2:base;
+}
+const pkey=(name,country)=>`${(name||"").trim()}__${country||""}`;
+function playerPts(pos,tally){ if(!tally) return 0; const k=POS[pos];
+  return (+tally.cs||0)*k.cs+(+tally.goal||0)*k.goal+(+tally.assist||0)*k.assist+(+tally.red||0)*k.red+(+tally.og||0)*k.og; }
+
+/* ===================== FIREBASE ===================== */
+const cfgOk = window.FIREBASE_CONFIG && !String(window.FIREBASE_CONFIG.apiKey).startsWith("TÄHÄN");
+let db=null;
+if(cfgOk){ firebase.initializeApp(window.FIREBASE_CONFIG); db=firebase.firestore(); }
+const docRef=(n)=>db.collection("wc26").doc(n);
+const nameId=(name)=>name.trim().replace(/[\/]/g,"-").slice(0,300);
+
+/* ===================== APP ===================== */
+function App(){
+  const [tab,setTab]=useState("veikkaus");
+  const [detail,setDetail]=useState(null);
+  const [matches,setMatches]=useState(null);
+  const [config,setConfig]=useState({locked:false,pin:"",stake:10});
+  const [teamstats,setTeamstats]=useState({});
+  const [playerstats,setPlayerstats]=useState({});
+  const [preds,setPreds]=useState({});
+  const [err,setErr]=useState("");
+
+  useEffect(()=>{
+    if(!cfgOk) return;
+    const subs=[];
+    subs.push(docRef("matches").onSnapshot(d=>{
+      const lst=d.exists?(d.data().list||[]):null;
+      if(!lst||!lst[0]||!lst[0].date){ const sd=buildSeedMatches(); docRef("matches").set({list:sd}).catch(e=>setErr(e.message)); setMatches(sd); }
+      else setMatches(lst);
+    },e=>setErr(e.message)));
+    subs.push(docRef("config").onSnapshot(d=>{ if(d.exists) setConfig({locked:false,pin:"",stake:10,...d.data()}); },e=>setErr(e.message)));
+    subs.push(docRef("teamstats").onSnapshot(d=>{ setTeamstats(d.exists?(d.data().map||{}):{}); }));
+    subs.push(docRef("playerstats").onSnapshot(d=>{ setPlayerstats(d.exists?(d.data().map||{}):{}); }));
+    subs.push(db.collection("predictions").onSnapshot(s=>{ const o={}; s.forEach(x=>o[x.id]=x.data()); setPreds(o); },e=>setErr(e.message)));
+    return ()=>subs.forEach(u=>u&&u());
+  },[]);
+
+  const scores=useMemo(()=>{
+    const out={}; const ms=matches||[];
+    Object.entries(preds).forEach(([id,p])=>{
+      let mp=0; ms.forEach(mt=>{ const pt=matchPoints(p.scores&&p.scores[mt.id],mt); if(pt) mp+=pt; });
+      let pp=0; POS_ORDER.forEach(pos=>{ const pk=p.picks&&p.picks[pos];
+        if(pk&&pk.name) pp+=playerPts(pos,playerstats[pkey(pk.name,pk.country)]); });
+      let tp=0; if(p.team){ const t=teamstats[p.team]; if(t) tp+=(+t.wins||0)*WIN_POINTS+(t.champ?CHAMP_POINTS:0); }
+      out[id]={mp,pp,tp,total:mp+pp+tp};
+    });
+    return out;
+  },[preds,matches,playerstats,teamstats]);
+
+  if(!cfgOk) return <Setup/>;
+  if(matches===null) return <div className="wrap" style={{paddingTop:80}}><p className="lab">Yhdistetään tietokantaan…</p>{err&&<div className="note err">Virhe: {err}</div>}</div>;
+
+  return (
+    <div className="wrap">
+      <header className="hero">
+        <div className="kick">USA · KANADA · MEKSIKO — 11.6.–19.7.2026</div>
+        <h1 className="title">MM-<em>VEIKKAUS</em> '26</h1>
+        <p className="sub">Veikkaa alkulohkon ottelut ja kasaa unelmajoukkue. Pisteet ja kärkitaulu päivittyvät kaikille reaaliajassa.</p>
+      </header>
+      <nav className="tabs">
+        {[["veikkaus","Oma veikkaus"],["karki","Kärkitaulu"],["ottelut","Ottelut"],["jarjestaja","Järjestäjä"]].map(([k,l])=>
+          <button key={k} className={"tab"+(tab===k?" on":"")} onClick={()=>setTab(k)}>{l}</button>)}
+      </nav>
+      {err&&<div className="note err">Tietokantavirhe: {err} — tarkista Firestore-säännöt (README vaihe 4).</div>}
+      {tab==="veikkaus"&&<Veikkaus matches={matches} preds={preds} config={config} playerstats={playerstats}/>}
+      {tab==="karki"&&(detail&&preds[detail]
+        ? <Kortti p={preds[detail]} sc={scores[detail]} matches={matches} teamstats={teamstats} playerstats={playerstats} onBack={()=>setDetail(null)}/>
+        : <Fragment>
+            <PotBar count={Object.keys(preds).length} played={matches.filter(m=>m.hg!==""&&m.hg!=null).length} total={matches.length} stake={config.stake||10}/>
+            {config.locked&&<Live matches={matches} preds={preds} today={todayISO()}/>}
+            <Karki preds={preds} scores={scores} matches={matches} playerstats={playerstats} teamstats={teamstats} locked={config.locked} onOpen={id=>setDetail(id)} stake={config.stake||10}/>
+          </Fragment>)}
+      {tab==="ottelut"&&<Ottelut matches={matches} preds={preds}/>}
+      {tab==="jarjestaja"&&<Admin matches={matches} preds={preds} config={config} teamstats={teamstats} playerstats={playerstats}/>}
+      <p className="tiny" style={{marginTop:28,textAlign:"center"}}>
+        Ottelut: <span style={{color:"var(--grn)"}}>5 p</span> täysosuma · <span style={{color:"var(--grn)"}}>4 p</span> lopputulos + toisen maalimäärä · <span style={{color:"var(--amb)"}}>3 p</span> pelkkä lopputulos · tuplaottelu ×2.
+      </p>
+    </div>
+  );
+}
+
+function Setup(){
+  return <div className="wrap" style={{paddingTop:60}}>
+    <header className="hero"><div className="kick">Asennus kesken</div><h1 className="title">MM-<em>VEIKKAUS</em></h1></header>
+    <div className="card"><div className="lab warn">Firebase-asetukset puuttuvat</div>
+    <p>Avaa <b>index.html</b> ja korvaa kohdassa <code>window.FIREBASE_CONFIG</code> olevat "TÄHÄN"-arvot omilla Firebase-tiedoillasi. Ohjeet ovat README-tiedostossa (vaihe 3).</p></div></div>;
+}
+
+/* ===================== JOUKKUEVALITSIN ===================== */
+function TeamPicker({value,onChange,disabled,playerstats,showPts}){
+  const picks=value.picks||{};
+  const countries=POS_ORDER.map(p=>picks[p]&&picks[p].country).filter(Boolean);
+  const dup = countries.length!==new Set(countries).size;
+  const setPick=(pos,field,val)=>{
+    const np={...picks,[pos]:{...(picks[pos]||{name:"",country:""}),[field]:val}};
+    onChange({...value,picks:np});
+  };
+  return (
+    <div>
+      <div className="grid4">
+        {POS_ORDER.map(pos=>{
+          const pk=picks[pos]||{name:"",country:""};
+          const pts = (showPts&&pk.name)?playerPts(pos,playerstats[pkey(pk.name,pk.country)]):null;
+          return (
+            <div key={pos} className="card" style={{margin:0,padding:12}}>
+              <div className="lab" style={{color:"var(--grn)"}}>{POS[pos].label}</div>
+              <input style={{width:"100%",marginTop:6}} placeholder="Pelaajan nimi" disabled={disabled}
+                value={pk.name||""} onChange={e=>setPick(pos,"name",e.target.value)}/>
+              <select style={{width:"100%",marginTop:6}} disabled={disabled}
+                value={pk.country||""} onChange={e=>setPick(pos,"country",e.target.value)}>
+                <option value="">— maa —</option>
+                {ALL_TEAMS.map(t=><option key={t} value={t}>{flag(t)} {t}</option>)}
+              </select>
+              <div className="tiny" style={{marginTop:6}}>Maali {POS[pos].goal}p · syöttö {POS[pos].assist}p · 0-peli {POS[pos].cs}p{pts!=null?` · nyt ${pts}p`:""}</div>
+            </div>
+          );
+        })}
+      </div>
+      {dup && <div className="note warn">⚠️ Saman maan pelaajia voi valita vain yhden. Valitse pelaajat neljästä eri maasta.</div>}
+      <div className="divider"/>
+      <div className="lab">Mestarijoukkue (voitto {WIN_POINTS}p/ottelu, mestaruus {CHAMP_POINTS}p)</div>
+      <select style={{width:"100%",marginTop:6,maxWidth:340}} disabled={disabled}
+        value={value.team||""} onChange={e=>onChange({...value,team:e.target.value})}>
+        <option value="">— valitse —</option>
+        {ALL_TEAMS.map(t=><option key={t} value={t}>{flag(t)} {t}</option>)}
+      </select>
+    </div>
+  );
+}
+const hasDupCountry=(v)=>{ const c=POS_ORDER.map(p=>v.picks&&v.picks[p]&&v.picks[p].country).filter(Boolean); return c.length!==new Set(c).size; };
+
+/* ===================== OMA VEIKKAUS ===================== */
+function Veikkaus({matches,preds,config,playerstats}){
+  const existing=Object.keys(preds).sort((a,b)=>a.localeCompare(b,"fi"));
+  const [name,setName]=useState("");
+  const [draft,setDraft]=useState(null);
+  const [open,setOpen]=useState({"A":true});
+  const [msg,setMsg]=useState("");
+  const locked=config.locked;
+
+  const start=(n)=>{ const base=preds[nameId(n)]||{name:n,scores:{},picks:{},team:""}; setName(n); setDraft(JSON.parse(JSON.stringify(base))); };
+  const setScore=(id,side,val)=>{ if(!/^[0-9]?$/.test(val))return;
+    setDraft(d=>({...d,scores:{...d.scores,[id]:{...(d.scores[id]||{h:"",a:""}),[side]:val}}})); };
+  const save=async()=>{
+    if(!name.trim()){setMsg("Anna nimi.");return;}
+    if(hasDupCountry(draft)){setMsg("Korjaa: neljä pelaajaa, neljä eri maata.");return;}
+    try{ await db.collection("predictions").doc(nameId(name)).set({...draft,name:name.trim()}); setMsg("Tallennettu! ✔"); }
+    catch(e){ setMsg("Virhe: "+e.message); }
+  };
+
+  if(!draft) return (
+    <div className="card">
+      <div className="lab">Aloita tästä</div>
+      <h2 style={{fontSize:22,margin:"6px 0 12px"}}>Kuka olet?</h2>
+      <div className="row wrapf">
+        <input placeholder="Nimesi" value={name} onChange={e=>setName(e.target.value)} style={{minWidth:200}}/>
+        <button className="act" onClick={()=>name.trim()&&start(name.trim())}>Uusi / muokkaa</button>
+      </div>
+      {existing.length>0&&<><div className="divider"/><div className="lab">Jo mukana</div>
+        <div className="row wrapf" style={{marginTop:8}}>{existing.map(id=>
+          <button key={id} className="ghost" onClick={()=>start(preds[id].name||id)}>{preds[id].name||id}</button>)}</div></>}
+      {locked&&<div className="note warn">🔒 Veikkaukset on lukittu — voit katsella mutta et muokata.</div>}
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="card">
+        <div className="row between wrapf">
+          <div><div className="lab">Veikkaaja</div><div style={{fontSize:22,fontWeight:800}}>{name}</div></div>
+          <div className="row"><button className="ghost" onClick={()=>setDraft(null)}>Vaihda nimeä</button>
+            <button className="act" onClick={save} disabled={locked}>Tallenna</button></div>
+        </div>
+        {msg&&<div className="note" style={{marginBottom:0}}>{msg}</div>}
+        {locked&&<div className="note warn">🔒 Veikkaukset on lukittu.</div>}
+      </div>
+
+      <div className="card">
+        <div className="lab">Unelmajoukkue</div>
+        <h2 style={{fontSize:20,margin:"4px 0 8px"}}>Pelaajat (eri maista) & mestari</h2>
+        <p className="tiny" style={{marginBottom:12}}>Valitse jokaiselle pelipaikalle pelaaja ja hänen maansa. Neljä pelaajaa on oltava neljästä eri maasta. Pelipaikat fifa.com/worldcup.</p>
+        <TeamPicker value={draft} onChange={setDraft} disabled={locked} playerstats={playerstats} showPts={true}/>
+      </div>
+
+      {Object.keys(GROUPS).map(g=>(
+        <div className="card" key={g}>
+          <div className="section-h" onClick={()=>setOpen(o=>({...o,[g]:!o[g]}))}>
+            <span>Lohko {g} — {GROUPS[g].join(", ")}</span><span>{open[g]?"–":"+"}</span></div>
+          {open[g]&&matches.filter(m=>m.group===g).map(mt=>{
+            const p=(draft.scores[mt.id])||{h:"",a:""};
+            return <div className="match" key={mt.id}>
+              <div className="tm r">{flag(mt.home)} {mt.home}{mt.dbl&&<span className="pill dbl" style={{marginLeft:6}}>×2</span>}</div>
+              <div className="row" style={{gap:6}}>
+                <input className="sc" inputMode="numeric" disabled={locked} value={p.h} onChange={e=>setScore(mt.id,"h",e.target.value)}/>
+                <span className="mut">–</span>
+                <input className="sc" inputMode="numeric" disabled={locked} value={p.a} onChange={e=>setScore(mt.id,"a",e.target.value)}/>
+              </div>
+              <div className="tm">{flag(mt.away)} {mt.away}</div>
+            </div>;
+          })}
+        </div>
+      ))}
+      <div style={{textAlign:"center",margin:"18px 0"}}><button className="act" onClick={save} disabled={locked}>Tallenna veikkaus</button></div>
+    </div>
+  );
+}
+
+/* ===================== KÄRKITAULU ===================== */
+function Cell({pos,pick,teamstats,playerstats,champ}){
+  const country=champ?pick:(pick&&pick.country);
+  const out=country&&teamstats[country]&&teamstats[country].out;
+  const label= champ?"Mestarimaa":POS[pos].label;
+  let nm,pts;
+  if(champ){ nm=pick||"—"; const t=teamstats[pick]; pts=t?((+t.wins||0)*WIN_POINTS+(t.champ?CHAMP_POINTS:0)):0; }
+  else { nm=(pick&&pick.name)||"—"; pts=(pick&&pick.name)?playerPts(pos,playerstats[pkey(pick.name,pick.country)]):0; }
+  return (
+    <div className={"cellbox"+(out?" out":"")}>
+      <div className="nm">{country?<span className="flag">{flag(country)}</span>:null}{nm}</div>
+      <div className="pts">{out?`+${pts} p · tippunut`:`+${pts} p`}</div>
+    </div>
+  );
+}
+function eur(x){ if(x==null) return ""; const r=Math.round(x*100)/100; return (r%1===0)?(r+" €"):(r.toFixed(2).replace(".",",")+" €"); }
+function computePrizes(rows,pot){ const tier=[0.6,0.3,0.1]; const n=rows.length; const res=[]; let i=0;
+  while(i<n){ let j=i; while(j+1<n && rows[j+1].total===rows[i].total) j++; let sum=0; for(let p=i;p<=j;p++) sum+=(tier[p]||0)*pot; const each=sum/(j-i+1); for(let k=i;k<=j;k++) res[k]={rank:i+1,prize:each}; i=j+1; } return res; }
+function PotBar({count,played,total,stake}){ const pot=count*stake; const ts=[["1",pot*0.6,60,"g"],["2",pot*0.3,30,"s"],["3",pot*0.1,10,"b"]];
+  return (<div className="potbar">
+    <div><div className="lab">Potti</div><div className="pottot">{eur(pot)}</div><div className="tiny">{count} osallistujaa × {stake} € · {played}/{total} ottelua · tasapelissä jaetaan</div></div>
+    <div className="tiers">{ts.map(([r,a,p,c])=><div key={r} className="tier"><span className={"medal "+c}>{r}</span><div><div className="teur">{eur(a)}</div><div className="tiny">{p} %</div></div></div>)}</div>
+  </div>); }
+
+function Karki({preds,scores,matches,playerstats,teamstats,locked,onOpen,stake}){
+  const rows=Object.keys(preds).map(id=>({id,p:preds[id],...scores[id]})).sort((a,b)=>b.total-a.total);
+  if(rows.length===0) return <div className="card"><div className="note">Ei veikkauksia vielä. Täytä omasi “Oma veikkaus” -välilehdellä!</div></div>;
+  const pot=rows.length*(stake||10); const pr=computePrizes(rows,pot);
+  const mcls=(rank)=>rank===1?"g":rank===2?"s":rank===3?"b":null;
+  return (
+    <div>
+      {locked
+        ? <div className="tiny" style={{margin:"-2px 4px 8px"}}>👆 Napauta veikkaajan nimeä → kaikki hänen otteluveikkauksensa ja pisteet.</div>
+        : <div className="note warn">Otteluveikkaukset näkyvät muille vasta kun veikkaukset on lukittu (turnauksen alkaessa).</div>}
+
+      {/* LEVEÄ PÖYTÄ */}
+      <div className="card lb-wide" style={{overflowX:"auto"}}>
+        <table className="lbtable">
+          <thead><tr><th>#</th><th>Veikkaaja</th><th>Yht</th><th>Maalivahti</th><th>Puolustaja</th><th>Keskikenttä</th><th>Hyökkääjä</th><th>Mestarimaa</th></tr></thead>
+          <tbody>
+          {rows.map((r,i)=>{ const m=mcls(pr[i].rank); return (
+            <tr key={r.id} className={i===0?"top":""} style={{cursor:locked?"pointer":"default"}} onClick={()=>locked&&onOpen(r.id)}>
+              <td><span className={"rank"+(i===0?" gold":"")}>{pr[i].rank}</span></td>
+              <td><div className="nm-tot"><span style={{fontWeight:800,fontSize:16,display:"inline-flex",alignItems:"center",gap:6}}>{r.p.name||r.id}{m&&<span className={"medal "+m}>{pr[i].rank}</span>}{locked&&<span className="chev">›</span>}</span><span className="tiny">alkulohko {r.mp} p</span></div></td>
+              <td><span className="tot" style={{color:i===0?"var(--grn)":"var(--ink)"}}>{r.total}</span></td>
+              {POS_ORDER.map(pos=><td key={pos}><Cell pos={pos} pick={r.p.picks&&r.p.picks[pos]} teamstats={teamstats} playerstats={playerstats}/></td>)}
+              <td><Cell champ pick={r.p.team} teamstats={teamstats} playerstats={playerstats}/></td>
+            </tr>
+          );})}
+          </tbody>
+        </table>
+      </div>
+
+      {/* KOMPAKTIT KORTIT */}
+      <div className="lb-cards">
+        {rows.map((r,i)=>{ const m=mcls(pr[i].rank); const t=r.p.team; const tout=t&&teamstats[t]&&teamstats[t].out; return (
+          <div key={r.id} className={"pcard"+(i===0?" top":"")} style={{cursor:locked?"pointer":"default"}} onClick={()=>locked&&onOpen(r.id)}>
+            {i===0&&<div className="bar"/>}
+            <div className="chd">
+              <span className={"rank"+(i===0?" gold":"")}>{pr[i].rank}</span>
+              <span className="cflag" style={tout?{opacity:.4,filter:"grayscale(1)"}:null}>{flag(t)}</span>
+              <div className="nmcol"><span className="cname">{r.p.name||r.id}{m&&<span className={"medal "+m}>{pr[i].rank}</span>}{locked&&<span className="chev">›</span>}</span><div className="tiny">alkulohko {r.mp} p{tout?" · mestari tippunut":""}</div></div>
+              <div style={{textAlign:"right"}}><div className="tot" style={{fontSize:26,color:i===0?"var(--grn)":"var(--ink)"}}>{r.total}</div><div className="tiny">yhteensä</div></div>
+            </div>
+            <div className="jrow"><span className="jpill">Ottelut {r.mp} p</span><span className="jpill">Joukkue {r.pp+r.tp} p</span></div>
+          </div>
+        );})}
+      </div>
+    </div>
+  );
+}
+
+/* ===================== LIVE-SEURANTA ===================== */
+function Live({matches,preds,today}){
+  const [exp,setExp]=useState({});
+  const played=matches.filter(m=>m.hg!==""&&m.hg!=null);
+  const upcoming=matches.filter(m=>m.hg===""||m.hg==null);
+  if(played.length===0&&upcoming.length===0) return null;
+  const last=[...played].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:b.id-a.id).slice(0,3);
+  const next=[...upcoming].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.id-b.id).slice(0,3);
+  const names=Object.keys(preds);
+  const scorers=(m)=>names.map(id=>({n:preds[id].name||id,pt:matchPoints(preds[id].scores&&preds[id].scores[m.id],m)})).filter(z=>z.pt!=null&&z.pt>0).sort((a,b)=>b.pt-a.pt);
+  const predsFor=(m)=>names.map(id=>({n:preds[id].name||id,pr:preds[id].scores&&preds[id].scores[m.id]})).filter(x=>x.pr&&x.pr.h!=="");
+  return (<div className="livewrap">
+    {last.length>0&&<div className="card">
+      <div className="lab" style={{color:"var(--grn)"}}>Viime tulokset</div>
+      {last.map(m=>{const sc=scorers(m);return <div key={m.id} className="liverow">
+        <div className="row between"><div className="tm">{flag(m.home)} {m.home} <span className="mut">–</span> {flag(m.away)} {m.away}{m.dbl&&<span className="pill dbl" style={{marginLeft:6}}>×2</span>}</div>
+          <div className="mono" style={{fontSize:17}}>{m.hg}–{m.ag}</div></div>
+        <div className="row wrapf" style={{gap:5,marginTop:5}}>
+          <span className="tiny" style={{marginRight:2}}>{dateLabel(m.date,today)} ·</span>
+          {sc.length===0?<span className="tiny">ei pisteitä</span>:sc.slice(0,5).map((z,i)=>{const base=m.dbl?z.pt/2:z.pt;const cls=base>=5?"g":base===4?"g2":"y";return <span key={i} className={"pill "+cls}>{z.pt}p {z.n}</span>;})}
+        </div></div>;})}
+    </div>}
+    {next.length>0&&<div className="card">
+      <div className="lab" style={{color:"var(--grn)"}}>Tulossa seuraavaksi</div>
+      {next.map(m=>{const psl=predsFor(m);const open=exp[m.id];const show=open?psl:psl.slice(0,3);const rest=psl.length-show.length;
+        return <div key={m.id} className="liverow">
+        <div className="row between"><div className="tm">{flag(m.home)} {m.home} <span className="mut">–</span> {flag(m.away)} {m.away}{m.dbl&&<span className="pill dbl" style={{marginLeft:6}}>×2</span>}</div>
+          <span className="tiny" style={{color:"var(--teal)",fontWeight:700}}>{dateLabel(m.date,today)}</span></div>
+        <div className="row wrapf" style={{gap:6,marginTop:6}}>
+          {psl.length===0?<span className="tiny">ei veikkauksia</span>:show.map((x,i)=><span key={i} className="predchip">{x.n} <span className="s">{x.pr.h}-{x.pr.a}</span></span>)}
+          {psl.length>3&&<span className="morechip" onClick={()=>setExp(e=>({...e,[m.id]:!open}))}>{open?"▴ vähemmän":"+"+rest+" ▾"}</span>}
+        </div></div>;})}
+    </div>}
+  </div>);
+}
+
+/* ===================== VEIKKAAJAN OTTELUKORTTI ===================== */
+function Kortti({p,sc,matches,teamstats,playerstats,onBack}){
+  const [open,setOpen]=useState({"A":true});
+  return (<div>
+    <div className="card">
+      <button className="ghost" onClick={onBack}>‹ Kärkitaulu</button>
+      <div className="row between wrapf" style={{marginTop:10}}>
+        <h2 style={{fontSize:26}}>{p.name}</h2>
+        <div style={{textAlign:"right"}}><div className="tot" style={{fontSize:28,color:"var(--grn)"}}>{sc.total}</div><div className="tiny">yhteensä</div></div>
+      </div>
+      <div className="row wrapf" style={{gap:8,marginTop:6}}>
+        {[["Alkulohko",sc.mp],["Pelaajat",sc.pp],["Mestari",sc.tp]].map(([l,v])=>
+          <span key={l} className="tiny" style={{border:"1px solid var(--line)",borderRadius:13,padding:"5px 10px"}}>{l} {v} p</span>)}
+      </div>
+      <div className="divider"/>
+      <div className="lab">Joukkue</div>
+      {POS_ORDER.map(pos=>{const pk=p.picks&&p.picks[pos];const country=pk&&pk.country;const out=country&&teamstats[country]&&teamstats[country].out;
+        const pts=(pk&&pk.name)?playerPts(pos,playerstats[pkey(pk.name,pk.country)]):0;
+        return <div key={pos} className={"prow"+(out?" out":"")}><span className="poslab">{POS[pos].label}</span>
+          <span style={{fontWeight:700}}>{country?<span className="flag">{flag(country)}</span>:null}{(pk&&pk.name)||"—"}</span>
+          <span className="mono" style={{color:out?"var(--grey)":"var(--teal)",fontSize:13}}>{out?`+${pts} p · tippunut`:`+${pts} p`}</span></div>;})}
+      {(()=>{const t=p.team;const out=t&&teamstats[t]&&teamstats[t].out;const pts=t&&teamstats[t]?((+teamstats[t].wins||0)*WIN_POINTS+(teamstats[t].champ?CHAMP_POINTS:0)):0;
+        return <div className={"prow champ"+(out?" out":"")}><span className="poslab">Mestarimaa</span>
+          <span style={{fontWeight:700}}>{t?<span className="flag">{flag(t)}</span>:null}{t||"—"}</span>
+          <span className="mono" style={{color:out?"var(--grey)":"var(--teal)",fontSize:13}}>{out?`+${pts} p · tippunut`:`+${pts} p`}</span></div>;})()}
+    </div>
+    {Object.keys(GROUPS).map(g=>{
+      const ms=matches.filter(m=>m.group===g);
+      return <div className="card" key={g}>
+        <div className="section-h" onClick={()=>setOpen(o=>({...o,[g]:!o[g]}))}><span>Lohko {g}</span><span>{open[g]?"–":"+"}</span></div>
+        {open[g]&&ms.map(mt=>{
+          const pr=p.scores&&p.scores[mt.id]; const played=mt.hg!==""&&mt.hg!=null;
+          const pt=matchPoints(pr,mt); const base=(played&&pt!=null)?(mt.dbl?pt/2:pt):null;
+          const cls=base==null?"":base>=5?"g":base===4?"g2":base===3?"y":"z";
+          return <div key={mt.id} style={{padding:"9px 0",borderBottom:"1px dashed var(--line)"}}>
+            <div className="row between">
+              <div className="tm">{flag(mt.home)} {mt.home} <span className="mut">–</span> {flag(mt.away)} {mt.away}{mt.dbl&&<span className="pill dbl" style={{marginLeft:6}}>×2</span>}</div>
+              {(played&&pt!=null)?<span className={"pill "+cls}>{pt} p</span>:<span className="tiny">–</span>}
+            </div>
+            <div className="tiny" style={{marginTop:2}}>veikkaus {pr?`${pr.h}–${pr.a}`:"—"} · {played?`tulos ${mt.hg}–${mt.ag}`:"ei vielä pelattu"}</div>
+          </div>;
+        })}
+      </div>;
+    })}
+  </div>);
+}
+
+/* ===================== OTTELUT ===================== */
+function Ottelut({matches,preds}){
+  const [open,setOpen]=useState({"A":true});
+  const names=Object.keys(preds).sort((a,b)=>(preds[a].name||"").localeCompare(preds[b].name||"","fi"));
+  return (
+    <div>
+      <div className="card"><div className="note">Täysosuma 5 p · oikea lopputulos + toisen maalimäärä 4 p · pelkkä lopputulos 3 p · väärin 0 p. Tuplaottelussa ×2.</div></div>
+      {Object.keys(GROUPS).map(g=>(
+        <div className="card" key={g}>
+          <div className="section-h" onClick={()=>setOpen(o=>({...o,[g]:!o[g]}))}><span>Lohko {g}</span><span>{open[g]?"–":"+"}</span></div>
+          {open[g]&&matches.filter(m=>m.group===g).map(mt=>{
+            const done=mt.hg!==""&&mt.ag!==""&&mt.hg!=null&&mt.ag!=null;
+            return <div key={mt.id} style={{padding:"10px 0",borderBottom:"1px dashed var(--line)"}}>
+              <div className="row between">
+                <div className="tm">{flag(mt.home)} {mt.home} <span className="mut">vs</span> {flag(mt.away)} {mt.away}{mt.dbl&&<span className="pill dbl" style={{marginLeft:6}}>×2</span>}</div>
+                <div className="mono" style={{fontSize:17}}>{done?`${mt.hg}–${mt.ag}`:"– : –"}</div>
+              </div>
+              {done&&<div className="row wrapf" style={{gap:6,marginTop:6}}>
+                {names.map(id=>{ const pr=preds[id].scores&&preds[id].scores[mt.id]; const pt=matchPoints(pr,mt);
+                  if(!pr||pr.h===""||pr.a==="") return null;
+                  const base=mt.dbl?pt/2:pt; const cls=base>=5?"g":base===4?"g2":base===3?"y":"z";
+                  return <span key={id} className={"pill "+cls}>{preds[id].name||id} {pr.h}-{pr.a} · {pt}p</span>; })}
+              </div>}
+            </div>;
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ===================== JÄRJESTÄJÄ ===================== */
+function Admin({matches,preds,config,teamstats,playerstats}){
+  const [pin,setPin]=useState(""); const [ok,setOk]=useState(!config.pin);
+  if(!ok) return (
+    <div className="card"><div className="lab">Vain järjestäjälle</div>
+      <h2 style={{fontSize:20,margin:"6px 0 10px"}}>Syötä PIN</h2>
+      <div className="row"><input type="password" value={pin} onChange={e=>setPin(e.target.value)} placeholder="PIN"/>
+      <button className="act" onClick={()=>setOk(pin===config.pin)}>Avaa</button></div>
+      {pin&&pin!==config.pin&&<div className="note warn">Väärä PIN.</div>}</div>
+  );
+  return <AdminPanel matches={matches} preds={preds} config={config} teamstats={teamstats} playerstats={playerstats}/>;
+}
+
+function AdminPanel({matches,preds,config,teamstats,playerstats}){
+  const [open,setOpen]=useState({tools:true});
+  const [mDraft,setMDraft]=useState(matches);
+  const [flash,setFlash]=useState("");
+  useEffect(()=>{setMDraft(matches);},[matches]);
+  const fl=(t)=>{setFlash(t);setTimeout(()=>setFlash(""),1600);};
+  const upM=(id,patch)=>setMDraft(ms=>ms.map(m=>m.id===id?{...m,...patch}:m));
+  const saveM=async()=>{ try{await docRef("matches").set({list:mDraft});fl("Tulokset tallennettu");}catch(e){fl("Virhe: "+e.message);} };
+
+  // pelaajatilastot
+  const picked=useMemo(()=>{ const map={};
+    Object.values(preds).forEach(p=>POS_ORDER.forEach(pos=>{ const pk=p.picks&&p.picks[pos];
+      if(pk&&pk.name){ const k=pkey(pk.name,pk.country); (map[k]=map[k]||{name:pk.name,country:pk.country,pos:new Set()}).pos.add(pos);} }));
+    return Object.entries(map).map(([k,v])=>({k,...v,pos:[...v.pos]})); },[preds]);
+  const [psDraft,setPsDraft]=useState(playerstats);
+  useEffect(()=>{setPsDraft(playerstats);},[playerstats]);
+  const setStat=(k,f,v)=>{ if(!/^[0-9]{0,2}$/.test(v))return; setPsDraft(s=>({...s,[k]:{...(s[k]||{}),[f]:v}})); };
+  const savePs=async()=>{ try{await docRef("playerstats").set({map:psDraft});fl("Pelaajatilastot tallennettu");}catch(e){fl("Virhe: "+e.message);} };
+
+  // joukkuetilastot + tippuminen
+  const [tsDraft,setTsDraft]=useState(teamstats);
+  useEffect(()=>{setTsDraft(teamstats);},[teamstats]);
+  const setTeam=(t,f,v)=>setTsDraft(s=>({...s,[t]:{...(s[t]||{}),[f]:v}}));
+  const champTeams=[...new Set(Object.values(preds).map(p=>p.team).filter(Boolean))];
+  const saveTs=async()=>{ try{await docRef("teamstats").set({map:tsDraft});fl("Joukkuetiedot tallennettu");}catch(e){fl("Virhe: "+e.message);} };
+
+  // muiden korjaus
+  const [editId,setEditId]=useState("");
+  const [editDraft,setEditDraft]=useState(null);
+  const startEdit=(id)=>{ setEditId(id); setEditDraft(JSON.parse(JSON.stringify({picks:{},team:"",...preds[id]}))); };
+  const saveEdit=async()=>{ if(hasDupCountry(editDraft)){fl("Neljä eri maata!");return;}
+    try{await db.collection("predictions").doc(editId).set(editDraft);fl("Osallistujan valinnat tallennettu");}catch(e){fl("Virhe: "+e.message);} };
+
+  return (
+    <div>
+      {flash&&<div className="note">{flash}</div>}
+
+      <div className="card">
+        <div className="section-h" onClick={()=>setOpen(o=>({...o,tools:!o.tools}))}><span>Asetukset</span><span>{open.tools?"–":"+"}</span></div>
+        {open.tools&&<div>
+          <label className="row" style={{gap:8}}>
+            <input type="checkbox" style={{width:18,height:18}} checked={!!config.locked}
+              onChange={async e=>{try{await docRef("config").set({locked:e.target.checked},{merge:true});fl("Tallennettu");}catch(x){fl(x.message);}}}/>
+            <span>Lukitse veikkaukset (esim. avausottelun alkaessa)</span></label>
+          <div className="divider"/>
+          <div className="lab">Järjestäjän PIN</div>
+          <div className="row wrapf" style={{marginTop:6}}>
+            <input placeholder="aseta PIN" defaultValue={config.pin}
+              onBlur={async e=>{try{await docRef("config").set({pin:e.target.value},{merge:true});fl("PIN tallennettu");}catch(x){fl(x.message);}}}/>
+            <span className="tiny">Kevyt suoja kaveriporukalle, ei tietoturvaa.</span></div>
+          <div className="divider"/>
+          <div className="lab">Panostus per osallistuja (€)</div>
+          <div className="row wrapf" style={{marginTop:6}}>
+            <input type="number" min="0" step="1" style={{width:120}} defaultValue={config.stake!=null?config.stake:10}
+              onBlur={async e=>{try{await docRef("config").set({stake:Number(e.target.value)||0},{merge:true});fl("Panostus tallennettu");}catch(x){fl(x.message);}}}/>
+            <span className="tiny">Potti & palkinnot (60/30/10 %) lasketaan tästä ja osallistujamäärästä.</span></div>
+        </div>}
+      </div>
+
+      {/* TULOKSET */}
+      <div className="card">
+        <div className="lab">Ottelutulokset</div>
+        <h2 style={{fontSize:18,margin:"4px 0 8px"}}>Maalit & tuplaottelu</h2>
+        {Object.keys(GROUPS).map(g=>(
+          <div key={g}>
+            <div className="section-h" onClick={()=>setOpen(o=>({...o,["m"+g]:!o["m"+g]}))}><span>Lohko {g}</span><span>{open["m"+g]?"–":"+"}</span></div>
+            {open["m"+g]&&mDraft.filter(m=>m.group===g).map(mt=>(
+              <div key={mt.id} style={{padding:"8px 0",borderBottom:"1px dashed var(--line)"}}>
+                <div className="row wrapf" style={{gap:6}}>
+                  <div className="tm r" style={{flex:1}}>{flag(mt.home)} {mt.home}</div>
+                  <input className="sc" inputMode="numeric" value={mt.hg} onChange={e=>/^[0-9]?$/.test(e.target.value)&&upM(mt.id,{hg:e.target.value})}/>
+                  <span>–</span>
+                  <input className="sc" inputMode="numeric" value={mt.ag} onChange={e=>/^[0-9]?$/.test(e.target.value)&&upM(mt.id,{ag:e.target.value})}/>
+                  <div className="tm" style={{flex:1}}>{flag(mt.away)} {mt.away}</div>
+                  <label className="row tiny" style={{gap:4}}><input type="checkbox" checked={!!mt.dbl} onChange={e=>upM(mt.id,{dbl:e.target.checked})}/>×2</label>
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+        <div style={{textAlign:"center",marginTop:12}}><button className="act" onClick={saveM}>Tallenna tulokset</button></div>
+      </div>
+
+      {/* PELAAJATILASTOT */}
+      <div className="card">
+        <div className="lab">Pelaajatilastot</div>
+        <h2 style={{fontSize:18,margin:"4px 0 8px"}}>Vain valitut pelaajat</h2>
+        {picked.length===0?<div className="note">Kukaan ei ole vielä valinnut pelaajia.</div>:<>
+          <div className="statline head"><span>Pelaaja</span><span>0-peli</span><span>Maali</span><span>Syöttö</span><span>Pun.k.</span><span>Oma m.</span></div>
+          {picked.map(pp=>{ const t=psDraft[pp.k]||{};
+            return <div className="statline" key={pp.k}>
+              <span style={{fontWeight:700}}><span className="flag">{flag(pp.country)}</span>{pp.name} <span className="tiny">({pp.pos.join(",")})</span></span>
+              {["cs","goal","assist","red","og"].map(f=><input key={f} inputMode="numeric" value={t[f]||""} placeholder="0" onChange={e=>setStat(pp.k,f,e.target.value)}/>)}
+            </div>; })}
+          <div style={{textAlign:"center",marginTop:12}}><button className="act" onClick={savePs}>Tallenna pelaajatilastot</button></div>
+        </>}
+      </div>
+
+      {/* JOUKKUEET: VOITOT / MESTARUUS */}
+      <div className="card">
+        <div className="lab">Mestarijoukkueet</div>
+        <h2 style={{fontSize:18,margin:"4px 0 8px"}}>Voitot & mestaruus</h2>
+        {champTeams.length===0?<div className="note">Kukaan ei ole vielä valinnut mestarijoukkuetta.</div>:<>
+          {champTeams.map(t=>{ const ts=tsDraft[t]||{};
+            return <div className="row between wrapf" key={t} style={{padding:"8px 0",borderBottom:"1px dashed var(--line)",gap:10}}>
+              <span style={{fontWeight:700,flex:1}}><span className="flag">{flag(t)}</span>{t}</span>
+              <label className="row tiny" style={{gap:6}}>Voittoja<input className="sc" inputMode="numeric" value={ts.wins||""} placeholder="0" onChange={e=>/^[0-9]{0,2}$/.test(e.target.value)&&setTeam(t,"wins",e.target.value)}/></label>
+              <label className="row tiny" style={{gap:6}}><input type="checkbox" checked={!!ts.champ} onChange={e=>setTeam(t,"champ",e.target.checked)}/>Mestari</label>
+            </div>; })}
+        </>}
+        <div style={{textAlign:"center",marginTop:12}}><button className="act" onClick={saveTs}>Tallenna joukkuetiedot</button></div>
+      </div>
+
+      {/* TIPPUMISET (kaikki 48) */}
+      <div className="card">
+        <div className="section-h" onClick={()=>setOpen(o=>({...o,elim:!o.elim}))}><span>Tippuneet maat</span><span>{open.elim?"–":"+"}</span></div>
+        {open.elim&&<div>
+          <p className="tiny">Merkitse maa tippuneeksi pudotuspelien edetessä → sen pelaajat ja mestari­valinnat näkyvät kärkitaulussa harmaana. Kerätyt pisteet säilyvät.</p>
+          {Object.keys(GROUPS).map(g=>(
+            <div key={g} style={{marginTop:8}}>
+              <div className="tiny" style={{color:"var(--grn)",fontWeight:800}}>Lohko {g}</div>
+              <div className="row wrapf" style={{gap:8,marginTop:4}}>
+                {GROUPS[g].map(t=>{ const out=tsDraft[t]&&tsDraft[t].out;
+                  return <label key={t} className="row tiny" style={{gap:4,border:"1px solid var(--line)",borderRadius:8,padding:"5px 8px",opacity:out?.6:1}}>
+                    <input type="checkbox" checked={!!out} onChange={e=>setTeam(t,"out",e.target.checked)}/><span className="flag">{flag(t)}</span>{t}</label>; })}
+              </div>
+            </div>
+          ))}
+          <div style={{textAlign:"center",marginTop:12}}><button className="act" onClick={saveTs}>Tallenna tippumiset</button></div>
+        </div>}
+      </div>
+
+      {/* KORJAA OSALLISTUJAN VALINTOJA */}
+      <div className="card">
+        <div className="section-h" onClick={()=>setOpen(o=>({...o,edit:!o.edit}))}><span>Korjaa osallistujan valintoja</span><span>{open.edit?"–":"+"}</span></div>
+        {open.edit&&<div>
+          <div className="row wrapf" style={{gap:8}}>
+            <select value={editId} onChange={e=>e.target.value?startEdit(e.target.value):setEditDraft(null)}>
+              <option value="">— valitse osallistuja —</option>
+              {Object.keys(preds).map(id=><option key={id} value={id}>{preds[id].name||id}</option>)}
+            </select>
+          </div>
+          {editDraft&&<div style={{marginTop:12}}>
+            <TeamPicker value={editDraft} onChange={setEditDraft} disabled={false} playerstats={playerstats} showPts={false}/>
+            <div style={{textAlign:"center",marginTop:12}}><button className="act" onClick={saveEdit}>Tallenna korjaus</button></div>
+            <p className="tiny">Huom: tämä korjaa pelaaja- ja mestarivalinnat. Otteluveikkaukset osallistuja korjaa itse (ennen lukitusta).</p>
+          </div>}
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
