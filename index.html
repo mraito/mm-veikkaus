@@ -142,6 +142,13 @@ button.ghost:hover{border-color:var(--grn)}
 .teur{font-family:'Spline Sans Mono';font-weight:700;font-size:15px}
 .livewrap{display:block}
 @media(min-width:880px){.livewrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}.livewrap>.card{margin:14px 0 0}}
+/* ---- tallennusvahvistus (toast) ---- */
+.toastwrap{position:fixed;left:0;right:0;bottom:24px;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:9999;pointer-events:none;padding:0 12px}
+.toast{background:var(--grn);color:#04150c;font-weight:800;font-size:15px;padding:12px 22px;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.45);max-width:92vw;text-align:center;
+  animation:toastin .22s ease-out, toastout .4s ease-in 1.8s forwards}
+.toast.err{background:var(--red);color:#2a0a08}
+@keyframes toastin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes toastout{to{opacity:0;transform:translateY(14px)}}
 </style>
 </head>
 <body>
@@ -149,6 +156,23 @@ button.ghost:hover{border-color:var(--grn)}
 
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useMemo, useCallback, Fragment } = React;
+
+/* ===================== TALLENNUSVAHVISTUS (TOAST) ===================== */
+let toastListeners=[];
+function toast(text,kind){ toastListeners.forEach(fn=>fn(text,kind)); }
+function Toast(){
+  const [items,setItems]=useState([]);
+  useEffect(()=>{
+    const fn=(text,kind)=>{ const id=Date.now()+"_"+Math.random();
+      setItems(a=>[...a,{id,text,kind:kind||""}]);
+      setTimeout(()=>setItems(a=>a.filter(x=>x.id!==id)),2200);
+    };
+    toastListeners.push(fn);
+    return ()=>{ toastListeners=toastListeners.filter(f=>f!==fn); };
+  },[]);
+  if(items.length===0) return null;
+  return <div className="toastwrap">{items.map(t=><div key={t.id} className={"toast"+(t.kind==="err"?" err":"")}>{t.text}</div>)}</div>;
+}
 
 /* ===================== DATA ===================== */
 const GROUPS = {
@@ -331,6 +355,7 @@ function App(){
 
   return (
     <div className="wrap">
+      <Toast/>
       <header className="hero">
         <div className="kick">USA · KANADA · MEKSIKO — 11.6.–19.7.2026</div>
         <h1 className="title">MM-<em>VEIKKAUS</em> '26</h1>
@@ -454,8 +479,8 @@ function Veikkaus({matches,preds,config,playerstats}){
   const save=async()=>{
     if(!name.trim()){setMsg("Anna nimi.");return;}
     if(hasDupCountry(draft)){setMsg("Korjaa: neljä pelaajaa, neljä eri maata.");return;}
-    try{ await db.collection("predictions").doc(nameId(name)).set({...draft,name:name.trim(),pin:(draft.pin||"").trim()}); setMsg("Tallennettu! ✔"); }
-    catch(e){ setMsg("Virhe: "+e.message); }
+    try{ await db.collection("predictions").doc(nameId(name)).set({...draft,name:name.trim(),pin:(draft.pin||"").trim()}); setMsg(""); toast("Tallennettu ✔"); }
+    catch(e){ setMsg("Virhe: "+e.message); toast("Tallennus epäonnistui","err"); }
   };
 
   // PIN-kysely olemassa olevan veikkauksen avaamiseen
@@ -752,9 +777,8 @@ function Admin({matches,preds,config,teamstats,playerstats}){
 function AdminPanel({matches,preds,config,teamstats,playerstats}){
   const [open,setOpen]=useState({tools:true});
   const [mDraft,setMDraft]=useState(matches);
-  const [flash,setFlash]=useState("");
   useEffect(()=>{setMDraft(matches);},[matches]);
-  const fl=(t)=>{setFlash(t);setTimeout(()=>setFlash(""),1600);};
+  const fl=(t)=>toast(t, /virhe/i.test(t)?"err":"");
   const upM=(id,patch)=>setMDraft(ms=>ms.map(m=>m.id===id?{...m,...patch}:m));
   const saveM=async()=>{ try{await docRef("matches").set({list:mDraft});fl("Tulokset tallennettu");}catch(e){fl("Virhe: "+e.message);} };
 
@@ -791,8 +815,6 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
 
   return (
     <div>
-      {flash&&<div className="note">{flash}</div>}
-
       <div className="card">
         <div className="section-h" onClick={()=>setOpen(o=>({...o,tools:!o.tools}))}><span>Asetukset</span><span>{open.tools?"–":"+"}</span></div>
         {open.tools&&<div>
