@@ -687,7 +687,7 @@ function Karki({preds,scores,matches,playerstats,teamstats,locked,onOpen,stake})
             <div className="chd">
               <span className={"rank"+(i===0?" gold":"")}>{pr[i].rank}</span>
               <span className="cflag" style={tout?{opacity:.4,filter:"grayscale(1)"}:null}>{locked?flag(t):<span style={{fontSize:16}}>🔒</span>}</span>
-              <div className="nmcol"><span className="cname">{r.p.name||r.id}{m&&<span className={"medal "+m}>{pr[i].rank}</span>}{locked&&<span className="chev">›</span>}</span><div className="tiny">alkulohko {r.mp} p{tout?" · mestari tippunut":""}</div></div>
+              <div className="nmcol"><span className="cname">{r.p.name||r.id}{m&&<span className={"medal "+m}>{pr[i].rank}</span>}{locked&&<span className="chev">›</span>}</span>{tout&&<div className="tiny">mestari tippunut</div>}</div>
               <div style={{textAlign:"right"}}><div className="tot" style={{fontSize:26,color:i===0?"var(--grn)":"var(--ink)"}}>{r.total}</div><div className="tiny">yhteensä</div></div>
             </div>
             <div className="jrow"><span className="jpill">Ottelut {r.mp} p</span><span className="jpill">Joukkue {r.pp+r.tp} p</span></div>
@@ -711,7 +711,7 @@ function Live({matches,preds,today}){
   const predsFor=(m)=>names.map(id=>({n:preds[id].name||id,pr:preds[id].scores&&preds[id].scores[m.id]})).filter(x=>x.pr&&x.pr.h!=="");
   return (<div className="livewrap">
     {last.length>0&&<div className="card">
-      <div className="lab" style={{color:"var(--blue2)"}}>Viime tulokset</div>
+      <div className="lab" style={{color:"var(--blue2)"}}>Edelliset ottelut</div>
       {last.map(m=>{const sc=scorers(m);return <div key={m.id} className="liverow">
         <div className="row between"><div className="tm">{flag(m.home)} {m.home} <span className="mut">–</span> {flag(m.away)} {m.away}{m.dbl&&<span className="pill dbl" style={{marginLeft:6}}>×2</span>}</div>
           <div className="mono" style={{fontSize:17}}>{m.hg}–{m.ag}</div></div>
@@ -721,7 +721,7 @@ function Live({matches,preds,today}){
         </div></div>;})}
     </div>}
     {next.length>0&&<div className="card">
-      <div className="lab" style={{color:"var(--blue2)"}}>Tulossa seuraavaksi</div>
+      <div className="lab" style={{color:"var(--blue2)"}}>Seuraavat ottelut</div>
       {next.map(m=>{const psl=predsFor(m);const open=exp[m.id];const show=open?psl:psl.slice(0,3);const rest=psl.length-show.length;
         return <div key={m.id} className="liverow">
         <div className="row between"><div className="tm">{flag(m.home)} {m.home} <span className="mut">–</span> {flag(m.away)} {m.away}{m.dbl&&<span className="pill dbl" style={{marginLeft:6}}>×2</span>}</div>
