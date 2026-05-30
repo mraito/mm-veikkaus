@@ -172,6 +172,12 @@ function flagCode(team){ if(FLAG_SUB[team]) return FLAG_SUB[team]; const cc=ISO[
 function flag(team){ if(!team) return null; const code=flagCode(team); if(!code) return null;
   return <img className="flagimg" src={"https://flagcdn.com/24x18/"+code+".png"} srcSet={"https://flagcdn.com/48x36/"+code+".png 2x"} alt="" loading="lazy" onError={e=>{e.currentTarget.style.display="none";}}/>; }
 
+/* ===================== PELAAJATIETOKANTA =====================
+   Täytä lopullisten kokoonpanojen julkaisun jälkeen (2.6.2026).
+   Muoto: SQUADS["Maa"] = [ {n:"Pelaajan nimi", pos:"MV"|"P"|"KK"|"H"}, ... ]
+   Kun maalle on lista, veikkaus näyttää pelaajavalikon; muuten vapaa tekstikenttä. */
+const SQUADS = {};
+
 const POS = {
   MV:{label:"Maalivahti",cs:6,goal:8,assist:6,red:-3,og:-2},
   P:{label:"Puolustaja",cs:3,goal:7,assist:3,red:-3,og:-2},
@@ -362,28 +368,49 @@ function Setup(){
 /* ===================== JOUKKUEVALITSIN ===================== */
 function TeamPicker({value,onChange,disabled,playerstats,showPts}){
   const picks=value.picks||{};
+  const [custom,setCustom]=useState({});
   const countries=POS_ORDER.map(p=>picks[p]&&picks[p].country).filter(Boolean);
   const dup = countries.length!==new Set(countries).size;
-  const setPick=(pos,field,val)=>{
-    const np={...picks,[pos]:{...(picks[pos]||{name:"",country:""}),[field]:val}};
-    onChange({...value,picks:np});
-  };
+  const setField=(pos,patch)=>{ const np={...picks,[pos]:{...(picks[pos]||{name:"",country:""}),...patch}}; onChange({...value,picks:np}); };
   return (
     <div>
       <div className="grid4">
         {POS_ORDER.map(pos=>{
           const pk=picks[pos]||{name:"",country:""};
-          const pts = (showPts&&pk.name)?playerPts(pos,playerstats[pkey(pk.name,pk.country)]):null;
+          const squad=pk.country?(SQUADS[pk.country]||null):null;
+          const hasSquad=squad&&squad.length>0;
+          const known=hasSquad&&squad.some(p=>p.n===pk.name);
+          const isCustom=!!custom[pos];
+          const pts=(showPts&&pk.name)?playerPts(pos,playerstats[pkey(pk.name,pk.country)]):null;
+          const selVal=isCustom?"__custom__":(known?pk.name:(pk.name?"__own__":""));
           return (
             <div key={pos} className="card" style={{margin:0,padding:12}}>
               <div className="lab" style={{color:"var(--grn)"}}>{POS[pos].label}</div>
-              <input style={{width:"100%",marginTop:6}} placeholder="Pelaajan nimi" disabled={disabled}
-                value={pk.name||""} onChange={e=>setPick(pos,"name",e.target.value)}/>
               <select style={{width:"100%",marginTop:6}} disabled={disabled}
-                value={pk.country||""} onChange={e=>setPick(pos,"country",e.target.value)}>
+                value={pk.country||""} onChange={e=>{setField(pos,{country:e.target.value,name:""});setCustom(s=>({...s,[pos]:false}));}}>
                 <option value="">— maa —</option>
                 {ALL_TEAMS.map(t=><option key={t} value={t}>{t}</option>)}
               </select>
+              {hasSquad
+                ? <select style={{width:"100%",marginTop:6}} disabled={disabled} value={selVal}
+                    onChange={e=>{const v=e.target.value;
+                      if(v==="__custom__"){setCustom(s=>({...s,[pos]:true}));}
+                      else if(v==="__own__"){}
+                      else {setField(pos,{name:v});setCustom(s=>({...s,[pos]:false}));}}}>
+                    <option value="">— pelaaja —</option>
+                    <optgroup label={POS[pos].label}>
+                      {squad.filter(p=>p.pos===pos).map(p=><option key={p.n} value={p.n}>{p.n}</option>)}
+                    </optgroup>
+                    <optgroup label="Muut pelaajat">
+                      {squad.filter(p=>p.pos!==pos).map(p=><option key={p.n} value={p.n}>{p.n}</option>)}
+                    </optgroup>
+                    {pk.name&&!known&&<option value="__own__">{pk.name} (oma)</option>}
+                    <option value="__custom__">✏ Muu / kirjoita itse…</option>
+                  </select>
+                : null}
+              {(!hasSquad||isCustom)&&
+                <input style={{width:"100%",marginTop:6}} placeholder="Pelaajan nimi" disabled={disabled}
+                  value={pk.name||""} onChange={e=>setField(pos,{name:e.target.value})}/>}
               <div className="tiny" style={{marginTop:6}}>Maali {POS[pos].goal}p · syöttö {POS[pos].assist}p · 0-peli {POS[pos].cs}p{pts!=null?` · nyt ${pts}p`:""}</div>
             </div>
           );
