@@ -62,6 +62,10 @@ h1,h2,.disp{font-family:'Anton',sans-serif;font-weight:400;letter-spacing:.02em;
   background:transparent;color:var(--mut);cursor:pointer;transition:.15s}
 .tab:hover{color:var(--ink);border-color:var(--blue2)}
 .tab.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:3px;background:#0b1426}
+.segb{font-family:inherit;font-size:13px;font-weight:700;padding:6px 14px;border-radius:999px;color:var(--mut);border:none;background:transparent;cursor:pointer}
+.segb.on{background:var(--blue);color:#fff}
+.todaytag{font-size:10px;font-weight:800;color:#fff;background:var(--blue);border-radius:999px;padding:2px 9px;letter-spacing:.05em;margin-left:8px}
 .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
   border-radius:16px;padding:18px;margin:14px 0}
 .row{display:flex;align-items:center;gap:10px}
@@ -779,31 +783,57 @@ function Kortti({p,sc,matches,teamstats,playerstats,onBack}){
 
 /* ===================== OTTELUT ===================== */
 function Ottelut({matches,preds}){
-  const [open,setOpen]=useState({"A":true});
+  const today=todayISO();
   const names=Object.keys(preds).sort((a,b)=>(preds[a].name||"").localeCompare(preds[b].name||"","fi"));
+  const dates=useMemo(()=>[...new Set(matches.map(m=>m.date))].sort(),[matches]);
+  const defaultDay=useMemo(()=>dates.find(d=>d>=today)||dates[dates.length-1],[dates,today]);
+  const [view,setView]=useState("lohko");
+  const [open,setOpen]=useState({"A":true});
+  const [openDay,setOpenDay]=useState(()=>({[defaultDay]:true}));
+  const dayTitle=(ds)=>{ const d=new Date(ds+"T12:00:00"); const f=WD[d.getDay()]+" "+d.getDate()+"."+(d.getMonth()+1)+"."; const rel=dateLabel(ds,today); return rel===f?f:rel+" · "+f; };
+  const matchBlock=(mt)=>{
+    const done=mt.hg!==""&&mt.ag!==""&&mt.hg!=null&&mt.ag!=null;
+    return <div key={mt.id} style={{padding:"10px 0",borderBottom:"1px dashed var(--line)"}}>
+      <div className="row between">
+        <div className="tm">{flag(mt.home)} {mt.home} <span className="mut">vs</span> {flag(mt.away)} {mt.away}{mt.dbl&&<span className="pill dbl" style={{marginLeft:6}}>×2</span>}</div>
+        <div className="mono" style={{fontSize:17}}>{done?`${mt.hg}–${mt.ag}`:"– : –"}</div>
+      </div>
+      {done&&<div className="row wrapf" style={{gap:6,marginTop:6}}>
+        {names.map(id=>{ const pr=preds[id].scores&&preds[id].scores[mt.id]; const pt=matchPoints(pr,mt);
+          if(!pr||pr.h===""||pr.a==="") return null;
+          const base=mt.dbl?pt/2:pt; const cls=base>=5?"g":base===4?"g2":base===3?"y":"z";
+          return <span key={id} className={"pill "+cls}>{preds[id].name||id} {pr.h}-{pr.a} · {pt}p</span>; })}
+      </div>}
+    </div>;
+  };
   return (
     <div>
-      <div className="card"><div className="note">Täysosuma 5 p · oikea lopputulos + toisen maalimäärä 4 p · pelkkä lopputulos 3 p · väärin 0 p. Tuplaottelussa ×2.</div></div>
-      {Object.keys(GROUPS).map(g=>(
+      <div className="card"><div className="note">Täysosuma 5 p · oikea lopputulos + toisen maalimäärä 4 p · pelkkä lopputulos 3 p · väärin 0 p. Tuplaottelussa ×2.</div>
+        <div className="row" style={{gap:10,marginTop:4}}>
+          <span className="tiny" style={{fontWeight:700}}>Näkymä:</span>
+          <div className="seg">
+            <button className={"segb"+(view==="lohko"?" on":"")} onClick={()=>setView("lohko")}>Lohkoittain</button>
+            <button className={"segb"+(view==="paiva"?" on":"")} onClick={()=>setView("paiva")}>Päivittäin</button>
+          </div>
+        </div>
+      </div>
+
+      {view==="lohko" && Object.keys(GROUPS).map(g=>(
         <div className="card" key={g}>
           <div className="section-h" onClick={()=>setOpen(o=>({...o,[g]:!o[g]}))}><span>Lohko {g}</span><span>{open[g]?"–":"+"}</span></div>
-          {open[g]&&matches.filter(m=>m.group===g).map(mt=>{
-            const done=mt.hg!==""&&mt.ag!==""&&mt.hg!=null&&mt.ag!=null;
-            return <div key={mt.id} style={{padding:"10px 0",borderBottom:"1px dashed var(--line)"}}>
-              <div className="row between">
-                <div className="tm">{flag(mt.home)} {mt.home} <span className="mut">vs</span> {flag(mt.away)} {mt.away}{mt.dbl&&<span className="pill dbl" style={{marginLeft:6}}>×2</span>}</div>
-                <div className="mono" style={{fontSize:17}}>{done?`${mt.hg}–${mt.ag}`:"– : –"}</div>
-              </div>
-              {done&&<div className="row wrapf" style={{gap:6,marginTop:6}}>
-                {names.map(id=>{ const pr=preds[id].scores&&preds[id].scores[mt.id]; const pt=matchPoints(pr,mt);
-                  if(!pr||pr.h===""||pr.a==="") return null;
-                  const base=mt.dbl?pt/2:pt; const cls=base>=5?"g":base===4?"g2":base===3?"y":"z";
-                  return <span key={id} className={"pill "+cls}>{preds[id].name||id} {pr.h}-{pr.a} · {pt}p</span>; })}
-              </div>}
-            </div>;
-          })}
+          {open[g]&&matches.filter(m=>m.group===g).map(matchBlock)}
         </div>
       ))}
+
+      {view==="paiva" && dates.map(ds=>{ const isToday=ds===today; const dms=matches.filter(m=>m.date===ds);
+        return <div className="card" key={ds} style={isToday?{borderColor:"#3a47a8"}:null}>
+          <div className="section-h" onClick={()=>setOpenDay(o=>({...o,[ds]:!o[ds]}))}>
+            <span>{dayTitle(ds)}{isToday&&<span className="todaytag">TÄNÄÄN</span>}</span>
+            <span>{openDay[ds]?"–":"+"}</span>
+          </div>
+          {openDay[ds]&&dms.map(matchBlock)}
+        </div>;
+      })}
     </div>
   );
 }
