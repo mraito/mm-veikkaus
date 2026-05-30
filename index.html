@@ -97,7 +97,8 @@ button.ghost:hover{border-color:var(--grn)}
 .cellbox.out .nm{color:var(--mut)}
 .cellbox .pts{font-family:'Spline Sans Mono';font-size:12px;color:var(--teal);font-weight:600}
 .cellbox.out .pts{color:var(--grey)}
-.flag{font-size:16px;margin-right:5px}
+.flag{margin-right:0;display:inline-flex;align-items:center;vertical-align:middle}
+.flagimg{width:22px;height:16px;object-fit:cover;border-radius:3px;margin-right:6px;vertical-align:-3px;box-shadow:0 0 0 1px rgba(255,255,255,.1);background:#0c1a14}
 
 /* ---- kärkitaulu: leveä pöytä ---- */
 .lb-wide{display:none}
@@ -166,9 +167,10 @@ const GROUPS = {
 };
 const ALL_TEAMS = Object.values(GROUPS).flat().sort((a,b)=>a.localeCompare(b,"fi"));
 const ISO = {"Meksiko":"MX","Etelä-Afrikka":"ZA","Etelä-Korea":"KR","Tšekki":"CZ","Kanada":"CA","Bosnia-Hertsegovina":"BA","Qatar":"QA","Sveitsi":"CH","Brasilia":"BR","Marokko":"MA","Haiti":"HT","Yhdysvallat":"US","Paraguay":"PY","Australia":"AU","Turkki":"TR","Saksa":"DE","Curaçao":"CW","Norsunluurannikko":"CI","Ecuador":"EC","Alankomaat":"NL","Japani":"JP","Ruotsi":"SE","Tunisia":"TN","Belgia":"BE","Egypti":"EG","Iran":"IR","Uusi-Seelanti":"NZ","Espanja":"ES","Kap Verde":"CV","Saudi-Arabia":"SA","Uruguay":"UY","Ranska":"FR","Senegal":"SN","Irak":"IQ","Norja":"NO","Argentiina":"AR","Algeria":"DZ","Itävalta":"AT","Jordania":"JO","Portugali":"PT","Kongon dem. tasavalta":"CD","Uzbekistan":"UZ","Kolumbia":"CO","Kroatia":"HR","Ghana":"GH","Panama":"PA"};
-const FLAG_SPECIAL = {"Englanti":"🏴\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}","Skotlanti":"🏴\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}"};
-function flag(team){ if(!team) return ""; if(FLAG_SPECIAL[team]) return FLAG_SPECIAL[team];
-  const cc=ISO[team]; if(!cc) return ""; return cc.replace(/./g,c=>String.fromCodePoint(127397+c.charCodeAt(0))); }
+const FLAG_SUB = {"Englanti":"gb-eng","Skotlanti":"gb-sct"};
+function flagCode(team){ if(FLAG_SUB[team]) return FLAG_SUB[team]; const cc=ISO[team]; return cc?cc.toLowerCase():null; }
+function flag(team){ if(!team) return null; const code=flagCode(team); if(!code) return null;
+  return <img className="flagimg" src={"https://flagcdn.com/24x18/"+code+".png"} srcSet={"https://flagcdn.com/48x36/"+code+".png 2x"} alt="" loading="lazy" onError={e=>{e.currentTarget.style.display="none";}}/>; }
 
 const POS = {
   MV:{label:"Maalivahti",cs:6,goal:8,assist:6,red:-3,og:-2},
@@ -380,7 +382,7 @@ function TeamPicker({value,onChange,disabled,playerstats,showPts}){
               <select style={{width:"100%",marginTop:6}} disabled={disabled}
                 value={pk.country||""} onChange={e=>setPick(pos,"country",e.target.value)}>
                 <option value="">— maa —</option>
-                {ALL_TEAMS.map(t=><option key={t} value={t}>{flag(t)} {t}</option>)}
+                {ALL_TEAMS.map(t=><option key={t} value={t}>{t}</option>)}
               </select>
               <div className="tiny" style={{marginTop:6}}>Maali {POS[pos].goal}p · syöttö {POS[pos].assist}p · 0-peli {POS[pos].cs}p{pts!=null?` · nyt ${pts}p`:""}</div>
             </div>
@@ -393,7 +395,7 @@ function TeamPicker({value,onChange,disabled,playerstats,showPts}){
       <select style={{width:"100%",marginTop:6,maxWidth:340}} disabled={disabled}
         value={value.team||""} onChange={e=>onChange({...value,team:e.target.value})}>
         <option value="">— valitse —</option>
-        {ALL_TEAMS.map(t=><option key={t} value={t}>{flag(t)} {t}</option>)}
+        {ALL_TEAMS.map(t=><option key={t} value={t}>{t}</option>)}
       </select>
     </div>
   );
