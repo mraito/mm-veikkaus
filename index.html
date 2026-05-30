@@ -436,29 +436,62 @@ function Veikkaus({matches,preds,config,playerstats}){
   const [draft,setDraft]=useState(null);
   const [open,setOpen]=useState({"A":true});
   const [msg,setMsg]=useState("");
+  const [pinFor,setPinFor]=useState(null);
+  const [pinInput,setPinInput]=useState("");
+  const [pinErr,setPinErr]=useState("");
   const locked=config.locked;
 
-  const start=(n)=>{ const base=preds[nameId(n)]||{name:n,scores:{},picks:{},team:""}; setName(n); setDraft(JSON.parse(JSON.stringify(base))); };
+  const start=(n)=>{ const base=preds[nameId(n)]||{name:n,scores:{},picks:{},team:"",pin:""}; setName(n); setDraft(JSON.parse(JSON.stringify(base))); setMsg(""); };
+  const requestOpen=(n)=>{ const nm=(n||"").trim(); if(!nm) return;
+    const pred=preds[nameId(nm)];
+    if(pred&&pred.pin&&!locked){ setPinFor(nm); setPinInput(""); setPinErr(""); }
+    else start(nm); };
+  const tryPin=()=>{ const pred=preds[nameId(pinFor)];
+    if(pred&&String(pred.pin)===String(pinInput).trim()){ const n=pinFor; setPinFor(null); setPinInput(""); setPinErr(""); start(n); }
+    else setPinErr("Väärä PIN. Yritä uudelleen."); };
   const setScore=(id,side,val)=>{ if(!/^[0-9]?$/.test(val))return;
     setDraft(d=>({...d,scores:{...d.scores,[id]:{...(d.scores[id]||{h:"",a:""}),[side]:val}}})); };
   const save=async()=>{
     if(!name.trim()){setMsg("Anna nimi.");return;}
     if(hasDupCountry(draft)){setMsg("Korjaa: neljä pelaajaa, neljä eri maata.");return;}
-    try{ await db.collection("predictions").doc(nameId(name)).set({...draft,name:name.trim()}); setMsg("Tallennettu! ✔"); }
+    try{ await db.collection("predictions").doc(nameId(name)).set({...draft,name:name.trim(),pin:(draft.pin||"").trim()}); setMsg("Tallennettu! ✔"); }
     catch(e){ setMsg("Virhe: "+e.message); }
   };
+
+  // PIN-kysely olemassa olevan veikkauksen avaamiseen
+  if(!draft&&pinFor) return (
+    <div className="card">
+      <div className="lab warn">🔒 PIN tarvitaan</div>
+      <h2 style={{fontSize:22,margin:"6px 0 6px"}}>Avaa veikkaus: {pinFor}</h2>
+      <p className="tiny" style={{marginBottom:10}}>Tämä veikkaus on suojattu PIN-koodilla. Syötä se päästäksesi katsomaan ja muokkaamaan.</p>
+      <div className="row wrapf">
+        <input type="password" inputMode="numeric" autoFocus placeholder="PIN" value={pinInput}
+          onChange={e=>setPinInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")tryPin();}} style={{maxWidth:160}}/>
+        <button className="act" onClick={tryPin}>Avaa</button>
+        <button className="ghost" onClick={()=>{setPinFor(null);setPinInput("");setPinErr("");}}>Peruuta</button>
+      </div>
+      {pinErr&&<div className="note warn">{pinErr} Jos olet unohtanut PIN:n, järjestäjä voi nollata sen.</div>}
+    </div>
+  );
 
   if(!draft) return (
     <div className="card">
       <div className="lab">Aloita tästä</div>
       <h2 style={{fontSize:22,margin:"6px 0 12px"}}>Kuka olet?</h2>
-      <div className="row wrapf">
-        <input placeholder="Nimesi" value={name} onChange={e=>setName(e.target.value)} style={{minWidth:200}}/>
-        <button className="act" onClick={()=>name.trim()&&start(name.trim())}>Uusi / muokkaa</button>
+      <div className="lab">Uusi veikkaaja</div>
+      <div className="row wrapf" style={{marginTop:6}}>
+        <input placeholder="Nimesi" value={name} onChange={e=>setName(e.target.value)}
+          onKeyDown={e=>{if(e.key==="Enter")requestOpen(name);}} style={{minWidth:200}}/>
+        <button className="act" onClick={()=>requestOpen(name)}>Aloita</button>
       </div>
-      {existing.length>0&&<><div className="divider"/><div className="lab">Jo mukana</div>
-        <div className="row wrapf" style={{marginTop:8}}>{existing.map(id=>
-          <button key={id} className="ghost" onClick={()=>start(preds[id].name||id)}>{preds[id].name||id}</button>)}</div></>}
+      {existing.length>0&&<><div className="divider"/><div className="lab">Palaatko muokkaamaan? Valitse nimesi</div>
+        <div className="row wrapf" style={{marginTop:6}}>
+          <select defaultValue="" onChange={e=>{const v=e.target.value; e.target.value=""; if(v)requestOpen(preds[v].name||v);}} style={{minWidth:220}}>
+            <option value="">— valitse nimesi —</option>
+            {existing.map(id=><option key={id} value={id}>{(preds[id].name||id)+(preds[id].pin?" 🔒":"")}</option>)}
+          </select>
+        </div>
+        <p className="tiny" style={{marginTop:8}}>🔒 = veikkaus on suojattu PIN-koodilla.</p></>}
       {locked&&<div className="note warn">🔒 Veikkaukset on lukittu — voit katsella mutta et muokata.</div>}
     </div>
   );
@@ -468,12 +501,24 @@ function Veikkaus({matches,preds,config,playerstats}){
       <div className="card">
         <div className="row between wrapf">
           <div><div className="lab">Veikkaaja</div><div style={{fontSize:22,fontWeight:800}}>{name}</div></div>
-          <div className="row"><button className="ghost" onClick={()=>setDraft(null)}>Vaihda nimeä</button>
+          <div className="row"><button className="ghost" onClick={()=>{setDraft(null);setMsg("");}}>Vaihda nimeä</button>
             <button className="act" onClick={save} disabled={locked}>Tallenna</button></div>
         </div>
         {msg&&<div className="note" style={{marginBottom:0}}>{msg}</div>}
         {locked&&<div className="note warn">🔒 Veikkaukset on lukittu.</div>}
       </div>
+
+      {!locked&&<div className="card">
+        <div className="lab" style={{color:"var(--grn)"}}>🔒 Oma PIN — suositeltu</div>
+        <p className="tiny" style={{margin:"6px 0 10px"}}>💡 Suosittelemme PIN-koodia. Ilman sitä kuka tahansa voi avata veikkauksesi tällä nimellä ja nähdä tai muuttaa valintojasi ennen lukitusta. PIN pitää veikkauksesi omana tietonasi — aseta se nyt, niin se kysytään aina kun veikkaus avataan.</p>
+        <div className="row wrapf" style={{gap:8}}>
+          <input type="password" inputMode="numeric" placeholder="esim. 1234" disabled={locked}
+            value={draft.pin||""} onChange={e=>setDraft(d=>({...d,pin:e.target.value}))} style={{maxWidth:160}}/>
+          {(draft.pin||"").trim()
+            ? <span className="tiny" style={{color:"var(--teal)"}}>PIN asetettu — muista se! Tyhjennä kenttä poistaaksesi suojan.</span>
+            : <span className="tiny">Valinnainen, mutta suositeltu. Kevyt suoja kurkkimista vastaan (ei vahva salasana).</span>}
+        </div>
+      </div>}
 
       <div className="card">
         <div className="lab">Unelmajoukkue</div>
@@ -734,11 +779,15 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
   const [editId,setEditId]=useState("");
   const [editDraft,setEditDraft]=useState(null);
   const [delId,setDelId]=useState("");
+  const [resetId,setResetId]=useState("");
   const startEdit=(id)=>{ setEditId(id); setEditDraft(JSON.parse(JSON.stringify({picks:{},team:"",...preds[id]}))); };
   const saveEdit=async()=>{ if(hasDupCountry(editDraft)){fl("Neljä eri maata!");return;}
     try{await db.collection("predictions").doc(editId).set(editDraft);fl("Osallistujan valinnat tallennettu");}catch(e){fl("Virhe: "+e.message);} };
   const doDelete=async()=>{ if(!delId) return; const nm=(preds[delId]&&preds[delId].name)||delId; if(!window.confirm("Poistetaanko veikkaaja \""+nm+"\" pysyvästi? Tätä ei voi perua.")) return;
     try{ await db.collection("predictions").doc(delId).delete(); setDelId(""); fl("Veikkaaja poistettu"); }catch(e){ fl("Virhe: "+e.message); } };
+  const doResetPin=async()=>{ if(!resetId) return; const nm=(preds[resetId]&&preds[resetId].name)||resetId;
+    if(!window.confirm("Nollataanko veikkaajan \""+nm+"\" PIN? Sen jälkeen veikkauksen voi avata ilman PIN:iä.")) return;
+    try{ await db.collection("predictions").doc(resetId).set({pin:""},{merge:true}); setResetId(""); fl("PIN nollattu"); }catch(e){ fl("Virhe: "+e.message); } };
 
   return (
     <div>
@@ -854,6 +903,21 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
             <div style={{textAlign:"center",marginTop:12}}><button className="act" onClick={saveEdit}>Tallenna korjaus</button></div>
             <p className="tiny">Huom: tämä korjaa pelaaja- ja mestarivalinnat. Otteluveikkaukset osallistuja korjaa itse (ennen lukitusta).</p>
           </div>}
+        </div>}
+      </div>
+
+      {/* NOLLAA PELAAJAN PIN */}
+      <div className="card">
+        <div className="section-h" onClick={()=>setOpen(o=>({...o,pin:!o.pin}))}><span>Nollaa pelaajan PIN</span><span>{open.pin?"–":"+"}</span></div>
+        {open.pin&&<div>
+          <div className="row wrapf" style={{gap:8}}>
+            <select value={resetId} onChange={e=>setResetId(e.target.value)}>
+              <option value="">— valitse osallistuja —</option>
+              {Object.keys(preds).map(id=><option key={id} value={id}>{(preds[id].name||id)+(preds[id].pin?" 🔒":"")}</option>)}
+            </select>
+            <button className="ghost" disabled={!resetId} onClick={doResetPin}>Nollaa PIN</button>
+          </div>
+          <p className="tiny">🔒 = veikkaajalla on PIN asetettuna. Jos pelaaja unohtaa PIN-koodinsa, nollaa se tästä — sen jälkeen veikkauksen voi avata ilman PIN:iä (ja asettaa uuden).</p>
         </div>}
       </div>
 
