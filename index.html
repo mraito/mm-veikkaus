@@ -703,9 +703,12 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
   // muiden korjaus
   const [editId,setEditId]=useState("");
   const [editDraft,setEditDraft]=useState(null);
+  const [delId,setDelId]=useState("");
   const startEdit=(id)=>{ setEditId(id); setEditDraft(JSON.parse(JSON.stringify({picks:{},team:"",...preds[id]}))); };
   const saveEdit=async()=>{ if(hasDupCountry(editDraft)){fl("Neljä eri maata!");return;}
     try{await db.collection("predictions").doc(editId).set(editDraft);fl("Osallistujan valinnat tallennettu");}catch(e){fl("Virhe: "+e.message);} };
+  const doDelete=async()=>{ if(!delId) return; const nm=(preds[delId]&&preds[delId].name)||delId; if(!window.confirm("Poistetaanko veikkaaja \""+nm+"\" pysyvästi? Tätä ei voi perua.")) return;
+    try{ await db.collection("predictions").doc(delId).delete(); setDelId(""); fl("Veikkaaja poistettu"); }catch(e){ fl("Virhe: "+e.message); } };
 
   return (
     <div>
@@ -821,6 +824,20 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
             <div style={{textAlign:"center",marginTop:12}}><button className="act" onClick={saveEdit}>Tallenna korjaus</button></div>
             <p className="tiny">Huom: tämä korjaa pelaaja- ja mestarivalinnat. Otteluveikkaukset osallistuja korjaa itse (ennen lukitusta).</p>
           </div>}
+        </div>}
+      </div>
+
+      <div className="card">
+        <div className="section-h" onClick={()=>setOpen(o=>({...o,del:!o.del}))}><span>Poista veikkaaja</span><span>{open.del?"–":"+"}</span></div>
+        {open.del&&<div>
+          <div className="row wrapf" style={{gap:8}}>
+            <select value={delId} onChange={e=>setDelId(e.target.value)}>
+              <option value="">— valitse osallistuja —</option>
+              {Object.keys(preds).map(id=><option key={id} value={id}>{preds[id].name||id}</option>)}
+            </select>
+            <button className="ghost" style={{borderColor:"var(--red)",color:"var(--red)"}} disabled={!delId} onClick={doDelete}>Poista valittu</button>
+          </div>
+          <p className="tiny">Poistaa veikkaajan rivin pysyvästi (esim. testirivi tai kahteen kertaan tullut). Tätä ei voi perua.</p>
         </div>}
       </div>
     </div>
