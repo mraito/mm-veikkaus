@@ -315,6 +315,12 @@ function matchPoints(pred,m){
 const pkey=(name,country)=>`${(name||"").trim()}__${country||""}`;
 function playerPts(pos,tally){ if(!tally) return 0; const k=POS[pos];
   return (+tally.cs||0)*k.cs+(+tally.goal||0)*k.goal+(+tally.assist||0)*k.assist+(+tally.red||0)*k.red+(+tally.og||0)*k.og; }
+function autoGroupWins(team,matches){ let n=0; (matches||[]).forEach(mt=>{
+  if(mt.hg===""||mt.hg==null||mt.ag===""||mt.ag==null) return; const hg=+mt.hg,ag=+mt.ag;
+  if(mt.home===team&&hg>ag) n++; else if(mt.away===team&&ag>hg) n++; }); return n; }
+function teamTotalWins(team,matches,teamstats){ const t=(teamstats&&teamstats[team])||{}; return autoGroupWins(team,matches)+(+t.wins||0); }
+function teamPoints(team,matches,teamstats){ const t=(teamstats&&teamstats[team])||{};
+  return teamTotalWins(team,matches,teamstats)*WIN_POINTS+(t.champ?CHAMP_POINTS:0); }
 
 /* ===================== FIREBASE ===================== */
 const cfgOk = window.FIREBASE_CONFIG && !String(window.FIREBASE_CONFIG.apiKey).startsWith("TÄHÄN");
@@ -372,7 +378,7 @@ function App(){
       let mp=0; ms.forEach(mt=>{ const pt=matchPoints(p.scores&&p.scores[mt.id],mt); if(pt) mp+=pt; });
       let pp=0; POS_ORDER.forEach(pos=>{ const pk=p.picks&&p.picks[pos];
         if(pk&&pk.name) pp+=playerPts(pos,playerstats[pkey(pk.name,pk.country)]); });
-      let tp=0; if(p.team){ const t=teamstats[p.team]; if(t) tp+=(+t.wins||0)*WIN_POINTS+(t.champ?CHAMP_POINTS:0); }
+      let tp=0; if(p.team){ tp=teamPoints(p.team,ms,teamstats); }
       out[id]={mp,pp,tp,total:mp+pp+tp};
     });
     return out;
@@ -610,17 +616,24 @@ function Veikkaus({matches,preds,config,playerstats}){
 }
 
 /* ===================== KÄRKITAULU ===================== */
-function Cell({pos,pick,teamstats,playerstats,champ}){
+function Cell({pos,pick,teamstats,playerstats,champ,matches}){
   const country=champ?pick:(pick&&pick.country);
   const out=country&&teamstats[country]&&teamstats[country].out;
   const label= champ?"Mestarimaa":POS[pos].label;
   let nm,pts;
-  if(champ){ nm=pick||"—"; const t=teamstats[pick]; pts=t?((+t.wins||0)*WIN_POINTS+(t.champ?CHAMP_POINTS:0)):0; }
+  if(champ){ nm=pick||"—"; pts=pick?teamPoints(pick,matches,teamstats):0; }
   else { nm=(pick&&pick.name)||"—"; pts=(pick&&pick.name)?playerPts(pos,playerstats[pkey(pick.name,pick.country)]):0; }
   return (
     <div className={"cellbox"+(out?" out":"")}>
       <div className="nm">{country?<span className="flag">{flag(country)}</span>:null}{nm}</div>
       <div className="pts">{out?`+${pts} p · tippunut`:`+${pts} p`}</div>
+    </div>
+  );
+}
+function LockedCell(){
+  return (
+    <div className="cellbox" style={{display:"flex",alignItems:"center"}}>
+      <div className="nm" style={{color:"var(--mut)",fontWeight:700}}>🔒 piilossa</div>
     </div>
   );
 }
@@ -642,7 +655,7 @@ function Karki({preds,scores,matches,playerstats,teamstats,locked,onOpen,stake})
     <div>
       {locked
         ? <div className="tiny" style={{margin:"-2px 4px 8px"}}>👆 Napauta veikkaajan nimeä → kaikki hänen otteluveikkauksensa ja pisteet.</div>
-        : <div className="note warn">Otteluveikkaukset näkyvät muille vasta kun veikkaukset on lukittu (turnauksen alkaessa).</div>}
+        : <div className="note warn">🔒 Muiden pelaaja- ja maavalinnat sekä otteluveikkaukset paljastuvat vasta kun veikkaukset on lukittu (turnauksen alkaessa) — näin kukaan ei voi kopioida toisten valintoja.</div>}
 
       {/* LEVEÄ PÖYTÄ */}
       <div className="card lb-wide" style={{overflowX:"auto"}}>
@@ -652,10 +665,10 @@ function Karki({preds,scores,matches,playerstats,teamstats,locked,onOpen,stake})
           {rows.map((r,i)=>{ const m=mcls(pr[i].rank); return (
             <tr key={r.id} className={i===0?"top":""} style={{cursor:locked?"pointer":"default"}} onClick={()=>locked&&onOpen(r.id)}>
               <td><span className={"rank"+(i===0?" gold":"")}>{pr[i].rank}</span></td>
-              <td><div className="nm-tot"><span style={{fontWeight:800,fontSize:16,display:"inline-flex",alignItems:"center",gap:6}}>{r.p.name||r.id}{m&&<span className={"medal "+m}>{pr[i].rank}</span>}{locked&&<span className="chev">›</span>}</span><span className="tiny">alkulohko {r.mp} p</span></div></td>
+              <td><div className="nm-tot"><span style={{fontWeight:800,fontSize:16,display:"inline-flex",alignItems:"center",gap:6}}>{r.p.name||r.id}{m&&<span className={"medal "+m}>{pr[i].rank}</span>}{locked&&<span className="chev">›</span>}</span><span className="tiny">alkulohko {r.mp} p · joukkue {r.pp+r.tp} p</span></div></td>
               <td><span className="tot" style={{color:i===0?"var(--grn)":"var(--ink)"}}>{r.total}</span></td>
-              {POS_ORDER.map(pos=><td key={pos}><Cell pos={pos} pick={r.p.picks&&r.p.picks[pos]} teamstats={teamstats} playerstats={playerstats}/></td>)}
-              <td><Cell champ pick={r.p.team} teamstats={teamstats} playerstats={playerstats}/></td>
+              {POS_ORDER.map(pos=><td key={pos}>{locked?<Cell pos={pos} pick={r.p.picks&&r.p.picks[pos]} teamstats={teamstats} playerstats={playerstats}/>:<LockedCell/>}</td>)}
+              <td>{locked?<Cell champ pick={r.p.team} teamstats={teamstats} playerstats={playerstats} matches={matches}/>:<LockedCell/>}</td>
             </tr>
           );})}
           </tbody>
@@ -669,7 +682,7 @@ function Karki({preds,scores,matches,playerstats,teamstats,locked,onOpen,stake})
             {i===0&&<div className="bar"/>}
             <div className="chd">
               <span className={"rank"+(i===0?" gold":"")}>{pr[i].rank}</span>
-              <span className="cflag" style={tout?{opacity:.4,filter:"grayscale(1)"}:null}>{flag(t)}</span>
+              <span className="cflag" style={tout?{opacity:.4,filter:"grayscale(1)"}:null}>{locked?flag(t):<span style={{fontSize:16}}>🔒</span>}</span>
               <div className="nmcol"><span className="cname">{r.p.name||r.id}{m&&<span className={"medal "+m}>{pr[i].rank}</span>}{locked&&<span className="chev">›</span>}</span><div className="tiny">alkulohko {r.mp} p{tout?" · mestari tippunut":""}</div></div>
               <div style={{textAlign:"right"}}><div className="tot" style={{fontSize:26,color:i===0?"var(--grn)":"var(--ink)"}}>{r.total}</div><div className="tiny">yhteensä</div></div>
             </div>
@@ -738,7 +751,7 @@ function Kortti({p,sc,matches,teamstats,playerstats,onBack}){
         return <div key={pos} className={"prow"+(out?" out":"")}><span className="poslab">{POS[pos].label}</span>
           <span style={{fontWeight:700}}>{country?<span className="flag">{flag(country)}</span>:null}{(pk&&pk.name)||"—"}</span>
           <span className="mono" style={{color:out?"var(--grey)":"var(--teal)",fontSize:13}}>{out?`+${pts} p · tippunut`:`+${pts} p`}</span></div>;})}
-      {(()=>{const t=p.team;const out=t&&teamstats[t]&&teamstats[t].out;const pts=t&&teamstats[t]?((+teamstats[t].wins||0)*WIN_POINTS+(teamstats[t].champ?CHAMP_POINTS:0)):0;
+      {(()=>{const t=p.team;const out=t&&teamstats[t]&&teamstats[t].out;const pts=t?teamPoints(t,matches,teamstats):0;
         return <div className={"prow champ"+(out?" out":"")}><span className="poslab">Mestarimaa</span>
           <span style={{fontWeight:700}}>{t?<span className="flag">{flag(t)}</span>:null}{t||"—"}</span>
           <span className="mono" style={{color:out?"var(--grey)":"var(--teal)",fontSize:13}}>{out?`+${pts} p · tippunut`:`+${pts} p`}</span></div>;})()}
@@ -914,11 +927,12 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
       <div className="card">
         <div className="lab">Mestarijoukkueet</div>
         <h2 style={{fontSize:18,margin:"4px 0 8px"}}>Voitot & mestaruus</h2>
+        <div className="note">Ryhmävaiheen voitot lasketaan automaattisesti tallennetuista ottelutuloksista (5 p/voitto). Lisää alle vain mahdolliset pudotuspelivoitot ja merkitse lopulta mestari (10 p).</div>
         {champTeams.length===0?<div className="note">Kukaan ei ole vielä valinnut mestarijoukkuetta.</div>:<>
-          {champTeams.map(t=>{ const ts=tsDraft[t]||{};
+          {champTeams.map(t=>{ const ts=tsDraft[t]||{}; const aw=autoGroupWins(t,matches);
             return <div className="row between wrapf" key={t} style={{padding:"8px 0",borderBottom:"1px dashed var(--line)",gap:10}}>
-              <span style={{fontWeight:700,flex:1}}><span className="flag">{flag(t)}</span>{t}</span>
-              <label className="row tiny" style={{gap:6}}>Voittoja<input className="sc" inputMode="numeric" value={ts.wins||""} placeholder="0" onChange={e=>/^[0-9]{0,2}$/.test(e.target.value)&&setTeam(t,"wins",e.target.value)}/></label>
+              <span style={{fontWeight:700,flex:1}}><span className="flag">{flag(t)}</span>{t} <span className="tiny" style={{fontWeight:400}}>· ryhmävoitot autom. {aw}</span></span>
+              <label className="row tiny" style={{gap:6}}>+ pudotuspelivoitot<input className="sc" inputMode="numeric" value={ts.wins||""} placeholder="0" onChange={e=>/^[0-9]{0,2}$/.test(e.target.value)&&setTeam(t,"wins",e.target.value)}/></label>
               <label className="row tiny" style={{gap:6}}><input type="checkbox" checked={!!ts.champ} onChange={e=>setTeam(t,"champ",e.target.checked)}/>Mestari</label>
             </div>; })}
         </>}
