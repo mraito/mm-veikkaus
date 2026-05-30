@@ -406,7 +406,7 @@ function App(){
         </div>
       </header>
       <nav className="tabs">
-        {[["veikkaus","Oma veikkaus"],["karki","Tulostaulukko"],["ottelut","Ottelut"],["jarjestaja","Järjestäjä"]].map(([k,l])=>
+        {[["veikkaus","Oma veikkaus"],["karki","Tulostaulukko"],["ottelut","Ottelut"],["saannot","Säännöt"],["jarjestaja","Järjestäjä"]].map(([k,l])=>
           <button key={k} className={"tab"+(tab===k?" on":"")} onClick={()=>setTab(k)}>{l}</button>)}
       </nav>
       {err&&<div className="note err">Tietokantavirhe: {err} — tarkista Firestore-säännöt (README vaihe 4).</div>}
@@ -419,9 +419,10 @@ function App(){
             <Karki preds={preds} scores={scores} matches={matches} playerstats={playerstats} teamstats={teamstats} locked={config.locked} onOpen={id=>setDetail(id)} stake={config.stake||10}/>
           </Fragment>)}
       {tab==="ottelut"&&<Ottelut matches={matches} preds={preds}/>}
+      {tab==="saannot"&&<Saannot stake={config.stake!=null?config.stake:10}/>}
       {tab==="jarjestaja"&&<Admin matches={matches} preds={preds} config={config} teamstats={teamstats} playerstats={playerstats}/>}
       <p className="tiny" style={{marginTop:28,textAlign:"center"}}>
-        Ottelut: <span style={{color:"var(--grn)"}}>5 p</span> täysosuma · <span style={{color:"var(--grn)"}}>4 p</span> lopputulos + toisen maalimäärä · <span style={{color:"var(--amb)"}}>3 p</span> pelkkä lopputulos · tuplaottelu ×2.
+        Tarkemmat säännöt ja pisteytys löydät <b style={{color:"var(--blue2)"}}>Säännöt</b>-välilehdeltä.
       </p>
     </div>
   );
@@ -546,13 +547,15 @@ function Veikkaus({matches,preds,config,playerstats}){
   if(!draft) return (
     <div className="card">
       <div className="lab">Aloita tästä</div>
-      <h2 style={{fontSize:22,margin:"6px 0 12px"}}>Kuka olet?</h2>
+      <h2 style={{fontSize:22,margin:"6px 0 8px"}}>Kuka olet?</h2>
+      <div className="note">Näin veikkaat: kirjoita nimesi, kasaa unelmajoukkueesi ja veikkaa alkulohkon ottelut. Voit tallentaa ja jatkaa myöhemmin, kunnes veikkaukset lukitaan. Tarkemmat säännöt löydät Säännöt-välilehdeltä.</div>
       <div className="lab">Uusi veikkaaja</div>
       <div className="row wrapf" style={{marginTop:6}}>
         <input placeholder="Nimesi" value={name} onChange={e=>setName(e.target.value)}
           onKeyDown={e=>{if(e.key==="Enter")requestOpen(name);}} style={{minWidth:200}}/>
         <button className="act" onClick={()=>requestOpen(name)}>Aloita</button>
       </div>
+      <p className="tiny" style={{marginTop:6}}>Käytä omaa, tunnistettavaa nimeä (esimerkiksi etunimi ja sukunimen alkukirjain), jottei kahta samannimistä tule sekaisin.</p>
       {existing.length>0&&<><div className="divider"/><div className="lab">Palaatko muokkaamaan? Valitse nimesi</div>
         <div className="row wrapf" style={{marginTop:6}}>
           <select defaultValue="" onChange={e=>{const v=e.target.value; e.target.value=""; if(v)requestOpen(preds[v].name||v);}} style={{minWidth:220}}>
@@ -592,8 +595,16 @@ function Veikkaus({matches,preds,config,playerstats}){
       <div className="card">
         <div className="lab">Unelmajoukkue</div>
         <h2 style={{fontSize:20,margin:"4px 0 8px"}}>Pelaajat (eri maista) & mestari</h2>
-        <p className="tiny" style={{marginBottom:12}}>Valitse jokaiselle pelipaikalle pelaaja ja hänen maansa. Neljä pelaajaa on oltava neljästä eri maasta. Pelipaikat fifa.com/worldcup.</p>
+        <p className="tiny" style={{marginBottom:12}}>Valitse jokaiselle pelipaikalle pelaaja ja hänen maansa. Valitse neljä pelaajaa, kukin eri maasta. Pelipaikat löydät osoitteesta fifa.com/worldcup.</p>
         <TeamPicker value={draft} onChange={setDraft} disabled={locked} playerstats={playerstats} showPts={true}/>
+      </div>
+
+      <div className="card">
+        <div className="lab" style={{color:"var(--blue2)"}}>Näin ottelut pisteytetään</div>
+        <div className="row wrapf" style={{gap:"14px 18px",marginTop:10}}>
+          {[["5 p","täysosuma","g"],["4 p","tulos + toisen maalimäärä","g2"],["3 p","oikea lopputulos","y"],["×2","tuplaottelu","dbl"]].map(([p,d,c],i)=>
+            <span key={i} className="row" style={{gap:8}}><span className={"pill "+c} style={{minWidth:34,textAlign:"center"}}>{p}</span><span style={{fontSize:13}}>{d}</span></span>)}
+        </div>
       </div>
 
       {Object.keys(GROUPS).map(g=>(
@@ -614,7 +625,13 @@ function Veikkaus({matches,preds,config,playerstats}){
           })}
         </div>
       ))}
-      <div style={{textAlign:"center",margin:"18px 0"}}><button className="act" onClick={save} disabled={locked}>Tallenna veikkaus</button></div>
+      {!locked&&<div className="card">
+        <div className="lab" style={{color:"var(--blue2)"}}>Ennen kuin lähdet</div>
+        <p className="tiny" style={{margin:"6px 0 0",color:"var(--ink)"}}>Voit muuttaa valintojasi lukitukseen asti. Veikkaukset lukitaan <b>11.6.2026 klo 21.00</b> Suomen aikaa, tunti ennen avausottelua. Lukituksen jälkeen valintoja ei voi enää muuttaa.</p>
+        <p className="tiny" style={{margin:"8px 0 0",color:"var(--ink)"}}>Osallistumismaksu on <b>{config.stake!=null?config.stake:10} €</b>. Maksa se MobilePaylla numeroon <b>050 376 7619</b>, viestiksi <b>"mm-veikkaus"</b> ja oma nimesi. Maksun on oltava perillä viimeistään <b>11.6.2026 klo 21.00</b>.</p>
+      </div>}
+      <div style={{textAlign:"center",margin:"18px 0"}}><button className="act" onClick={save} disabled={locked}>Tallenna veikkaus</button>
+        {!locked&&<p className="tiny" style={{marginTop:8}}>Muista tallentaa ennen kuin poistut.</p>}</div>
     </div>
   );
 }
@@ -808,7 +825,7 @@ function Ottelut({matches,preds}){
   };
   return (
     <div>
-      <div className="card"><div className="note">Täysosuma 5 p · oikea lopputulos + toisen maalimäärä 4 p · pelkkä lopputulos 3 p · väärin 0 p. Tuplaottelussa ×2.</div>
+      <div className="card"><div className="note">Täysosuma 5 p · lopputulos + toisen maalimäärä 4 p · pelkkä lopputulos 3 p · tuplaottelu ×2. Tarkemmat säännöt Säännöt-välilehdellä.</div>
         <div className="row" style={{gap:10,marginTop:4}}>
           <span className="tiny" style={{fontWeight:700}}>Näkymä:</span>
           <div className="seg">
@@ -834,6 +851,67 @@ function Ottelut({matches,preds}){
           {openDay[ds]&&dms.map(matchBlock)}
         </div>;
       })}
+    </div>
+  );
+}
+
+/* ===================== SÄÄNNÖT ===================== */
+function Saannot({stake}){
+  const otterivit=[["5 p","täysosuma (oikea lopputulos ja molemmat maalimäärät)","g"],
+    ["4 p","oikea lopputulos ja toisen joukkueen maalimäärä oikein","g2"],
+    ["3 p","oikea lopputulos, mutta molemmat maalimäärät väärin","y"],
+    ["0 p","väärä lopputulos","z"]];
+  return (
+    <div>
+      <div className="card">
+        <div className="lab" style={{color:"var(--blue2)"}}>Näin veikkaat</div>
+        <p style={{margin:"6px 0 0"}}>Kirjoita nimesi Oma veikkaus -välilehdellä, kasaa unelmajoukkueesi ja veikkaa alkulohkon ottelut. Voit tallentaa ja jatkaa myöhemmin, kunnes järjestäjä lukitsee veikkaukset turnauksen alkaessa.</p>
+      </div>
+
+      <div className="card">
+        <div className="lab" style={{color:"var(--blue2)"}}>Osallistumismaksu</div>
+        <p style={{margin:"6px 0 0"}}>Osallistumismaksu on {stake} €. Maksa se MobilePaylla numeroon <b>050 376 7619</b>. Kirjoita viestiksi <b>"mm-veikkaus"</b> ja oma käyttäjänimesi. Maksun on oltava perillä viimeistään <b>11.6.2026 klo 21.00</b>.</p>
+      </div>
+
+      <div className="card">
+        <div className="lab" style={{color:"var(--blue2)"}}>Otteluveikkaukset</div>
+        <p className="tiny" style={{margin:"6px 0 8px"}}>Vain alkulohko, 72 ottelua.</p>
+        {otterivit.map(([p,d,c],i)=>
+          <div key={i} className="row" style={{gap:10,padding:"5px 0"}}>
+            <span className={"pill "+c} style={{minWidth:34,textAlign:"center"}}>{p}</span>
+            <span style={{fontSize:14}}>{d}</span>
+          </div>)}
+        <p className="tiny" style={{marginTop:8}}>Tuplaotteluksi merkityssä ottelussa pisteet kaksinkertaistuvat (×2).</p>
+      </div>
+
+      <div className="card">
+        <div className="lab" style={{color:"var(--blue2)"}}>Unelmajoukkue</div>
+        <p style={{margin:"6px 0 8px"}}>Valitse neljä pelaajaa, kukin eri maasta: maalivahti, puolustaja, keskikenttäpelaaja ja hyökkääjä. Valitse lisäksi mestarijoukkue.</p>
+        <div style={{overflowX:"auto"}}>
+          <table className="lbtable" style={{minWidth:340}}>
+            <thead><tr><th>Tapahtuma</th>{POS_ORDER.map(p=><th key={p} style={{textAlign:"center"}}>{p}</th>)}</tr></thead>
+            <tbody>
+              <tr><td>0-peli</td>{POS_ORDER.map(p=><td key={p} style={{textAlign:"center"}}>{POS[p].cs?POS[p].cs+" p":"–"}</td>)}</tr>
+              <tr><td>Maali</td>{POS_ORDER.map(p=><td key={p} style={{textAlign:"center"}}>{POS[p].goal} p</td>)}</tr>
+              <tr><td>Syöttö</td>{POS_ORDER.map(p=><td key={p} style={{textAlign:"center"}}>{POS[p].assist} p</td>)}</tr>
+              <tr><td>Punainen kortti</td>{POS_ORDER.map(p=><td key={p} style={{textAlign:"center"}}>{POS[p].red} p</td>)}</tr>
+              <tr><td>Oma maali</td>{POS_ORDER.map(p=><td key={p} style={{textAlign:"center"}}>{POS[p].og} p</td>)}</tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="tiny" style={{marginTop:8}}>MV = maalivahti, P = puolustaja, KK = keskikenttäpelaaja, H = hyökkääjä. 0-peli = pelaajan joukkue ei päästä ottelussa maalia.</p>
+        <p className="tiny" style={{marginTop:6}}>Mestarijoukkue: {WIN_POINTS} p / voitto ja {CHAMP_POINTS} p mestaruudesta. Ryhmävaiheen voitot lasketaan automaattisesti ottelutuloksista.</p>
+      </div>
+
+      <div className="card">
+        <div className="lab" style={{color:"var(--blue2)"}}>Potti ja palkinnot</div>
+        <p style={{margin:"6px 0 0"}}>Palkinnot jaetaan: 1. sija 60 %, 2. sija 30 % ja 3. sija 10 %. Tasatilanteessa kyseisten sijojen palkinnot jaetaan tasan.</p>
+      </div>
+
+      <div className="card">
+        <div className="lab" style={{color:"var(--blue2)"}}>Lukitus ja yksityisyys</div>
+        <p style={{margin:"6px 0 0"}}>Veikkaukset lukitaan 11.6.2026 klo 21.00 Suomen aikaa, tunti ennen avausottelua (Meksiko–Etelä-Afrikka klo 22.00). Lukituksen jälkeen valintoja ei voi enää muuttaa, ja kaikkien valinnat tulevat näkyviin. Voit suojata oman veikkauksesi PIN-koodilla. Ennen lukitusta muiden pelaaja- ja maavalinnat sekä otteluveikkaukset ovat piilossa, jottei niitä voi kopioida.</p>
+      </div>
     </div>
   );
 }
