@@ -30,16 +30,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@500;600&display=swap');
 @font-face{font-family:'Twemoji Country Flags';unicode-range:U+1F1E6-1F1FF,U+1F3F4,U+E0062-E0063,U+E0065,U+E0067,U+E006C,U+E006E,U+E0073-E0074,U+E0077,U+E007F;src:url('https://cdn.jsdelivr.net/npm/country-flag-emoji-polyfill@0.1/dist/TwemojiCountryFlags.woff2') format('woff2');font-display:swap}
 :root{
-  --bg:#0a1410; --panel:#10231b; --panel2:#0d1c16; --line:#1f3a2e;
-  --ink:#eafff3; --mut:#7fae97; --grn:#39e57c; --grn2:#1f7d49;
+  --bg:#0a1020; --panel:#101d33; --panel2:#0c1727; --line:#22324f;
+  --ink:#eaf1ff; --mut:#8aa0c4; --grn:#39e57c; --grn2:#1f7d49;
   --amb:#ffcf3f; --amb2:#a9851a; --red:#ff5d52; --teal:#9be8b7; --grey:#6e7c76;
-  --alive:#1a3a28;
+  --alive:#16263f;
   --navy:#143a63; --blue:#2b34db; --blue2:#6f8cff;
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:'Twemoji Country Flags','Hanken Grotesk',sans-serif;color:var(--ink);
   background:radial-gradient(1000px 520px at 85% -12%,#16294d 0,transparent 55%),
-  radial-gradient(900px 500px at -10% 110%,#102a1f 0,transparent 55%),var(--bg);min-height:100vh;line-height:1.45;}
+  radial-gradient(900px 500px at -10% 110%,#0f2142 0,transparent 55%),var(--bg);min-height:100vh;line-height:1.45;}
 .mono{font-family:'Spline Sans Mono',monospace}
 h1,h2,.disp{font-family:'Anton',sans-serif;font-weight:400;letter-spacing:.02em;text-transform:uppercase}
 .wrap{max-width:1040px;margin:0 auto;padding:0 16px 90px}
@@ -56,7 +56,7 @@ h1,h2,.disp{font-family:'Anton',sans-serif;font-weight:400;letter-spacing:.02em;
 .cdnum{font-family:'Spline Sans Mono',monospace;color:#fff;font-size:20px;font-weight:600;line-height:1}
 .cdlab{color:#cdd8ff;font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-top:3px}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:0;z-index:20;
-  background:linear-gradient(var(--bg),rgba(10,20,16,.85));backdrop-filter:blur(8px);
+  background:linear-gradient(var(--bg),rgba(10,16,32,.85));backdrop-filter:blur(8px);
   padding:12px 0;margin-bottom:6px;border-bottom:1px solid var(--line)}
 .tab{font-family:inherit;font-weight:700;font-size:14px;padding:9px 14px;border-radius:999px;border:1px solid var(--line);
   background:transparent;color:var(--mut);cursor:pointer;transition:.15s}
@@ -78,7 +78,7 @@ button.act:hover{filter:brightness(1.08)}
 button.act:disabled{opacity:.5;cursor:not-allowed}
 button.ghost{font-family:inherit;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:9px 15px;cursor:pointer;font-weight:700}
 button.ghost:hover{border-color:var(--grn)}
-.note{font-size:13px;color:var(--mut);background:rgba(57,229,124,.05);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0}
+.note{font-size:13px;color:var(--mut);background:rgba(111,140,255,.06);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0}
 .warn{color:var(--amb)}
 .err{color:var(--red)}
 .divider{height:1px;background:var(--line);margin:14px 0}
@@ -100,7 +100,7 @@ button.ghost:hover{border-color:var(--grn)}
 
 /* ---- pelaaja/maa-solu ---- */
 .cellbox{background:var(--alive);border-radius:10px;padding:8px 10px;min-height:52px}
-.cellbox.out{background:#181f1c}
+.cellbox.out{background:#161a26}
 .cellbox .nm{font-weight:700;font-size:15px}
 .cellbox.out .nm{color:var(--mut)}
 .cellbox .pts{font-family:'Spline Sans Mono';font-size:12px;color:var(--teal);font-weight:600}
@@ -127,7 +127,7 @@ button.ghost:hover{border-color:var(--grn)}
 .pcard .bar{position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--blue)}
 .pcard .hd{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:10px;border-bottom:1px solid var(--line)}
 .prow{display:grid;grid-template-columns:96px 1fr auto;gap:8px;align-items:center;padding:7px 6px;margin-top:8px;border-radius:10px;background:var(--alive)}
-.prow.out{background:#181f1c}
+.prow.out{background:#161a26}
 .prow .poslab{font-size:11px;font-weight:800;color:var(--mut);text-transform:uppercase}
 .prow.champ .poslab{color:var(--amb)}
 .chev{color:var(--grn);font-weight:800;font-size:16px;margin-left:6px}
@@ -444,7 +444,7 @@ function TeamPicker({value,onChange,disabled,playerstats,showPts}){
           const selVal=isCustom?"__custom__":(known?pk.name:(pk.name?"__own__":""));
           return (
             <div key={pos} className="card" style={{margin:0,padding:12}}>
-              <div className="lab" style={{color:"var(--grn)"}}>{POS[pos].label}</div>
+              <div className="lab" style={{color:"var(--blue2)"}}>{POS[pos].label}</div>
               <select style={{width:"100%",marginTop:6}} disabled={disabled}
                 value={pk.country||""} onChange={e=>{setField(pos,{country:e.target.value,name:""});setCustom(s=>({...s,[pos]:false}));}}>
                 <option value="">— maa —</option>
@@ -568,7 +568,7 @@ function Veikkaus({matches,preds,config,playerstats}){
       </div>
 
       {!locked&&<div className="card">
-        <div className="lab" style={{color:"var(--grn)"}}>🔒 Oma PIN — suositeltu</div>
+        <div className="lab" style={{color:"var(--blue2)"}}>🔒 Oma PIN — suositeltu</div>
         <p className="tiny" style={{margin:"6px 0 10px"}}>💡 Suosittelemme PIN-koodia. Ilman sitä kuka tahansa voi avata veikkauksesi tällä nimellä ja nähdä tai muuttaa valintojasi ennen lukitusta. PIN pitää veikkauksesi omana tietonasi — aseta se nyt, niin se kysytään aina kun veikkaus avataan.</p>
         <div className="row wrapf" style={{gap:8}}>
           <input type="password" inputMode="numeric" placeholder="esim. 1234" disabled={locked}
@@ -694,7 +694,7 @@ function Live({matches,preds,today}){
   const predsFor=(m)=>names.map(id=>({n:preds[id].name||id,pr:preds[id].scores&&preds[id].scores[m.id]})).filter(x=>x.pr&&x.pr.h!=="");
   return (<div className="livewrap">
     {last.length>0&&<div className="card">
-      <div className="lab" style={{color:"var(--grn)"}}>Viime tulokset</div>
+      <div className="lab" style={{color:"var(--blue2)"}}>Viime tulokset</div>
       {last.map(m=>{const sc=scorers(m);return <div key={m.id} className="liverow">
         <div className="row between"><div className="tm">{flag(m.home)} {m.home} <span className="mut">–</span> {flag(m.away)} {m.away}{m.dbl&&<span className="pill dbl" style={{marginLeft:6}}>×2</span>}</div>
           <div className="mono" style={{fontSize:17}}>{m.hg}–{m.ag}</div></div>
@@ -704,7 +704,7 @@ function Live({matches,preds,today}){
         </div></div>;})}
     </div>}
     {next.length>0&&<div className="card">
-      <div className="lab" style={{color:"var(--grn)"}}>Tulossa seuraavaksi</div>
+      <div className="lab" style={{color:"var(--blue2)"}}>Tulossa seuraavaksi</div>
       {next.map(m=>{const psl=predsFor(m);const open=exp[m.id];const show=open?psl:psl.slice(0,3);const rest=psl.length-show.length;
         return <div key={m.id} className="liverow">
         <div className="row between"><div className="tm">{flag(m.home)} {m.home} <span className="mut">–</span> {flag(m.away)} {m.away}{m.dbl&&<span className="pill dbl" style={{marginLeft:6}}>×2</span>}</div>
@@ -932,7 +932,7 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
           <p className="tiny">Merkitse maa tippuneeksi pudotuspelien edetessä → sen pelaajat ja mestari­valinnat näkyvät tulostaulukossa harmaana. Kerätyt pisteet säilyvät.</p>
           {Object.keys(GROUPS).map(g=>(
             <div key={g} style={{marginTop:8}}>
-              <div className="tiny" style={{color:"var(--grn)",fontWeight:800}}>Lohko {g}</div>
+              <div className="tiny" style={{color:"var(--blue2)",fontWeight:800}}>Lohko {g}</div>
               <div className="row wrapf" style={{gap:8,marginTop:4}}>
                 {GROUPS[g].map(t=>{ const out=tsDraft[t]&&tsDraft[t].out;
                   return <label key={t} className="row tiny" style={{gap:4,border:"1px solid var(--line)",borderRadius:8,padding:"5px 8px",opacity:out?.6:1}}>
