@@ -119,7 +119,7 @@ button.ghost:hover{border-color:var(--grn)}
 .lbtable{width:100%;border-collapse:separate;border-spacing:0 0}
 .lbtable th{color:var(--mut);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;text-align:left;padding:8px 8px}
 .lbtable td{padding:8px 8px;border-top:1px solid var(--line);vertical-align:middle}
-.lbtable tr.top td{background:rgba(22,41,77,.55)}
+.lbtable tr.top td:first-child{box-shadow:inset 3px 0 0 var(--grn)}
 .rank{font-family:'Anton';font-size:20px;color:var(--grn)}
 .rank.gold{color:var(--amb)}
 .nm-tot{display:flex;flex-direction:column}
@@ -576,6 +576,7 @@ function Veikkaus({matches,preds,config,playerstats}){
           <div className="row"><button className="ghost" onClick={()=>{setDraft(null);setMsg("");}}>Vaihda nimeä</button>
             <button className="act" onClick={save} disabled={locked}>Tallenna</button></div>
         </div>
+        {!locked&&<div style={{marginTop:10}}><PayPill paid={draft.maksettu} stake={config.stake!=null?config.stake:10} full/></div>}
         {msg&&<div className="note" style={{marginBottom:0}}>{msg}</div>}
         {locked&&<div className="note warn">🔒 Veikkaukset on lukittu.</div>}
       </div>
@@ -658,6 +659,11 @@ function LockedCell(){
     </div>
   );
 }
+function PayPill({paid,stake,full}){
+  const base={fontSize:full?13:11,fontWeight:800,padding:full?"6px 13px":"2px 9px",borderRadius:999,display:"inline-flex",alignItems:"center",gap:full?6:4,whiteSpace:"nowrap"};
+  if(paid) return <span style={{...base,background:"rgba(57,229,124,.16)",color:"var(--grn)"}}>✓ Maksu{full?" suoritettu":""}</span>;
+  return <span style={{...base,background:"rgba(255,207,63,.14)",color:"var(--amb)",border:"1px solid var(--amb2)"}}>⧗ Maksu kesken{full?` — ${stake} € · MobilePay 050 376 7619`:""}</span>;
+}
 function eur(x){ if(x==null) return ""; const r=Math.round(x*100)/100; return (r%1===0)?(r+" €"):(r.toFixed(2).replace(".",",")+" €"); }
 function computePrizes(rows,pot){ const tier=[0.6,0.3,0.1]; const n=rows.length; const res=[]; let i=0;
   while(i<n){ let j=i; while(j+1<n && rows[j+1].total===rows[i].total) j++; let sum=0; for(let p=i;p<=j;p++) sum+=(tier[p]||0)*pot; const each=sum/(j-i+1); for(let k=i;k<=j;k++) res[k]={rank:i+1,prize:each}; i=j+1; } return res; }
@@ -681,13 +687,14 @@ function Karki({preds,scores,matches,playerstats,teamstats,locked,onOpen,stake})
       {/* LEVEÄ PÖYTÄ */}
       <div className="card lb-wide" style={{overflowX:"auto"}}>
         <table className="lbtable">
-          <thead><tr><th>#</th><th>Veikkaaja</th><th>Yht</th><th>Maalivahti</th><th>Puolustaja</th><th>Keskikenttä</th><th>Hyökkääjä</th><th>Mestarimaa</th></tr></thead>
+          <thead><tr><th>#</th><th>Veikkaaja</th><th>Yht</th>{!locked&&<th>Maksu</th>}<th>Maalivahti</th><th>Puolustaja</th><th>Keskikenttä</th><th>Hyökkääjä</th><th>Mestarimaa</th></tr></thead>
           <tbody>
           {rows.map((r,i)=>{ const m=mcls(pr[i].rank); return (
             <tr key={r.id} className={i===0?"top":""} style={{cursor:locked?"pointer":"default"}} onClick={()=>locked&&onOpen(r.id)}>
               <td><span className={"rank"+(i===0?" gold":"")}>{pr[i].rank}</span></td>
               <td><div className="nm-tot"><span style={{fontWeight:800,fontSize:16,display:"inline-flex",alignItems:"center",gap:6}}>{r.p.name||r.id}{m&&<span className={"medal "+m}>{pr[i].rank}</span>}{locked&&<span className="chev">›</span>}</span><span className="tiny">alkulohko {r.mp} p · joukkue {r.pp+r.tp} p</span></div></td>
               <td><span className="tot" style={{color:i===0?"var(--grn)":"var(--ink)"}}>{r.total}</span></td>
+              {!locked&&<td><PayPill paid={r.p.maksettu}/></td>}
               {POS_ORDER.map(pos=><td key={pos}>{locked?<Cell pos={pos} pick={r.p.picks&&r.p.picks[pos]} teamstats={teamstats} playerstats={playerstats}/>:<LockedCell/>}</td>)}
               <td>{locked?<Cell champ pick={r.p.team} teamstats={teamstats} playerstats={playerstats} matches={matches}/>:<LockedCell/>}</td>
             </tr>
@@ -704,7 +711,7 @@ function Karki({preds,scores,matches,playerstats,teamstats,locked,onOpen,stake})
             <div className="chd">
               <span className={"rank"+(i===0?" gold":"")}>{pr[i].rank}</span>
               <span className="cflag" style={tout?{opacity:.4,filter:"grayscale(1)"}:null}>{locked?flag(t):<span style={{fontSize:16}}>🔒</span>}</span>
-              <div className="nmcol"><span className="cname">{r.p.name||r.id}{m&&<span className={"medal "+m}>{pr[i].rank}</span>}{locked&&<span className="chev">›</span>}</span>{tout&&<div className="tiny">mestari tippunut</div>}</div>
+              <div className="nmcol"><span className="cname">{r.p.name||r.id}{m&&<span className={"medal "+m}>{pr[i].rank}</span>}{locked&&<span className="chev">›</span>}</span>{!locked&&<div style={{marginTop:5}}><PayPill paid={r.p.maksettu}/></div>}{tout&&<div className="tiny">mestari tippunut</div>}</div>
               <div style={{textAlign:"right"}}><div className="tot" style={{fontSize:26,color:i===0?"var(--grn)":"var(--ink)"}}>{r.total}</div><div className="tiny">yhteensä</div></div>
             </div>
             <div className="jrow"><span className="jpill">Ottelut {r.mp} p</span><span className="jpill">Joukkue {r.pp+r.tp} p</span></div>
@@ -922,7 +929,7 @@ function Admin({matches,preds,config,teamstats,playerstats}){
   if(!ok) return (
     <div className="card"><div className="lab">Vain järjestäjälle</div>
       <h2 style={{fontSize:20,margin:"6px 0 10px"}}>Syötä PIN</h2>
-      <div className="row"><input type="password" value={pin} onChange={e=>setPin(e.target.value)} placeholder="PIN"/>
+      <div className="row wrapf"><input type="password" value={pin} onChange={e=>setPin(e.target.value)} placeholder="PIN"/>
       <button className="act" onClick={()=>setOk(pin===config.pin)}>Avaa</button></div>
       {pin&&pin!==config.pin&&<div className="note warn">Väärä PIN.</div>}</div>
   );
@@ -959,6 +966,7 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
   const [editDraft,setEditDraft]=useState(null);
   const [delId,setDelId]=useState("");
   const [resetId,setResetId]=useState("");
+  const setPaid=async(id,val)=>{ try{ await db.collection("predictions").doc(id).set({maksettu:val},{merge:true}); fl(val?"Merkitty maksetuksi":"Maksu poistettu"); }catch(e){ fl("Virhe: "+e.message); } };
   const startEdit=(id)=>{ setEditId(id); setEditDraft(JSON.parse(JSON.stringify({picks:{},team:"",...preds[id]}))); };
   const saveEdit=async()=>{ if(hasDupCountry(editDraft)){fl("Neljä eri maata!");return;}
     try{await db.collection("predictions").doc(editId).set(editDraft);fl("Osallistujan valinnat tallennettu");}catch(e){fl("Virhe: "+e.message);} };
@@ -1081,6 +1089,22 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
             <div style={{textAlign:"center",marginTop:12}}><button className="act" onClick={saveEdit}>Tallenna korjaus</button></div>
             <p className="tiny">Huom: tämä korjaa pelaaja- ja mestarivalinnat. Otteluveikkaukset osallistuja korjaa itse (ennen lukitusta).</p>
           </div>}
+        </div>}
+      </div>
+
+      {/* MAKSUT */}
+      <div className="card">
+        <div className="section-h" onClick={()=>setOpen(o=>({...o,maksut:!o.maksut}))}><span>Maksut</span><span>{open.maksut?"–":"+"}</span></div>
+        {open.maksut&&<div>
+          {Object.keys(preds).length===0?<div className="note">Ei veikkaajia vielä.</div>:<>
+            <p className="tiny">Rastita kun osallistujan maksu on tullut. Merkki näkyy kaikille tulostaulukossa ja osallistujan omalla sivulla — kunnes veikkaukset lukitaan.</p>
+            <div className="tiny" style={{margin:"6px 0 4px",color:"var(--grn)",fontWeight:800}}>Maksanut {Object.values(preds).filter(p=>p.maksettu).length}/{Object.keys(preds).length}</div>
+            {Object.keys(preds).sort((a,b)=>(preds[a].name||a).localeCompare(preds[b].name||b,"fi")).map(id=>{ const paid=!!preds[id].maksettu;
+              return <label key={id} className="row between" style={{padding:"8px 0",borderBottom:"1px dashed var(--line)",cursor:"pointer"}}>
+                <span style={{fontWeight:700}}>{preds[id].name||id}</span>
+                <span className="row" style={{gap:10}}><PayPill paid={paid}/><input type="checkbox" style={{width:18,height:18}} checked={paid} onChange={e=>setPaid(id,e.target.checked)}/></span>
+              </label>; })}
+          </>}
         </div>}
       </div>
 
