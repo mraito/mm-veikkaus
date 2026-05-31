@@ -400,7 +400,7 @@ function App(){
           <div className="htxt">
             <div className="kick">USA · KANADA · MEKSIKO — 11.6.–19.7.2026</div>
             <h1 className="title">MM-<em>VEIKKAUS</em> '26</h1>
-            <p className="sub">Veikkaa alkulohkon ottelut ja kasaa unelmajoukkue. Pisteet ja tulostaulukko päivittyvät kaikille reaaliajassa.</p>
+            <p className="sub">Veikkaa alkulohkon ottelut ja kokoa oma joukkueesi.</p>
           </div>
           <Countdown/>
         </div>
@@ -548,7 +548,7 @@ function Veikkaus({matches,preds,config,playerstats}){
     <div className="card">
       <div className="lab">Aloita tästä</div>
       <h2 style={{fontSize:22,margin:"6px 0 8px"}}>Kuka olet?</h2>
-      <div className="note">Näin veikkaat: kirjoita nimesi, kasaa unelmajoukkueesi ja veikkaa alkulohkon ottelut. Voit tallentaa ja jatkaa myöhemmin, kunnes veikkaukset lukitaan. Tarkemmat säännöt löydät Säännöt-välilehdeltä.</div>
+      <div className="note">Näin veikkaat: kirjoita nimesi, kokoa oma joukkueesi ja veikkaa alkulohkon ottelut. Voit tallentaa ja jatkaa myöhemmin, kunnes veikkaukset lukitaan. Tarkemmat säännöt löydät Säännöt-välilehdeltä.</div>
       <div className="lab">Uusi veikkaaja</div>
       <div className="row wrapf" style={{marginTop:6}}>
         <input placeholder="Nimesi" value={name} onChange={e=>setName(e.target.value)}
@@ -594,9 +594,9 @@ function Veikkaus({matches,preds,config,playerstats}){
       </div>}
 
       <div className="card">
-        <div className="lab">Unelmajoukkue</div>
+        <div className="lab">Oma joukkue</div>
         <h2 style={{fontSize:20,margin:"4px 0 8px"}}>Pelaajat (eri maista) & mestari</h2>
-        <p className="tiny" style={{marginBottom:12}}>Valitse jokaiselle pelipaikalle pelaaja ja hänen maansa. Valitse neljä pelaajaa, kukin eri maasta. Pelipaikat löydät osoitteesta fifa.com/worldcup.</p>
+        <p className="tiny" style={{marginBottom:12}}>Valitse jokaiselle pelipaikalle pelaaja ja hänen maansa — neljä pelaajaa, kukin eri maasta. Pelipaikat löydät osoitteesta fifa.com/worldcup.</p>
         <TeamPicker value={draft} onChange={setDraft} disabled={locked} playerstats={playerstats} showPts={true}/>
       </div>
 
@@ -872,7 +872,7 @@ function Saannot({stake}){
     <div>
       <div className="card">
         <div className="lab" style={{color:"var(--blue2)"}}>Näin veikkaat</div>
-        <p style={{margin:"6px 0 0"}}>Kirjoita nimesi Oma veikkaus -välilehdellä, kasaa unelmajoukkueesi ja veikkaa alkulohkon ottelut. Voit tallentaa ja jatkaa myöhemmin, kunnes järjestäjä lukitsee veikkaukset turnauksen alkaessa.</p>
+        <p style={{margin:"6px 0 0"}}>Kirjoita nimesi Oma veikkaus -välilehdellä, kokoa oma joukkueesi ja veikkaa alkulohkon ottelut. Voit tallentaa ja jatkaa myöhemmin, kunnes järjestäjä lukitsee veikkaukset turnauksen alkaessa.</p>
       </div>
 
       <div className="card">
@@ -892,7 +892,7 @@ function Saannot({stake}){
       </div>
 
       <div className="card">
-        <div className="lab" style={{color:"var(--blue2)"}}>Unelmajoukkue</div>
+        <div className="lab" style={{color:"var(--blue2)"}}>Oma joukkue</div>
         <p style={{margin:"6px 0 8px"}}>Valitse neljä pelaajaa, kukin eri maasta: maalivahti, puolustaja, keskikenttäpelaaja ja hyökkääjä. Valitse lisäksi mestarijoukkue.</p>
         <div style={{overflowX:"auto"}}>
           <table className="lbtable" style={{minWidth:340}}>
