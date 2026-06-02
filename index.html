@@ -366,6 +366,7 @@ function matchPoints(pred,m){
   return m.dbl?base*2:base;
 }
 const pkey=(name,country)=>`${(name||"").trim()}__${country||""}`;
+const signp=(n)=> (n<0?`${n}`:`+${n}`);
 function playerPts(pos,tally){ if(!tally) return 0; const k=POS[pos];
   return (+tally.cs||0)*k.cs+(+tally.goal||0)*k.goal+(+tally.assist||0)*k.assist+(+tally.red||0)*k.red+(+tally.og||0)*k.og; }
 function autoGroupWins(team,matches){ let n=0; (matches||[]).forEach(mt=>{
@@ -697,7 +698,7 @@ function Cell({pos,pick,teamstats,playerstats,champ,matches}){
   return (
     <div className={"cellbox"+(out?" out":"")}>
       <div className="nm">{country?<span className="flag">{flag(country)}</span>:null}{nm}</div>
-      <div className="pts">{out?`+${pts} p · tippunut`:`+${pts} p`}</div>
+      <div className="pts">{out?`${signp(pts)} p · tippunut`:`${signp(pts)} p`}</div>
     </div>
   );
 }
@@ -827,11 +828,11 @@ function Kortti({p,sc,matches,teamstats,playerstats,onBack}){
         const pts=(pk&&pk.name)?playerPts(pos,playerstats[pkey(pk.name,pk.country)]):0;
         return <div key={pos} className={"prow"+(out?" out":"")}><span className="poslab">{POS[pos].label}</span>
           <span style={{fontWeight:700}}>{country?<span className="flag">{flag(country)}</span>:null}{(pk&&pk.name)||"—"}</span>
-          <span className="mono" style={{color:out?"var(--grey)":"var(--teal)",fontSize:13}}>{out?`+${pts} p · tippunut`:`+${pts} p`}</span></div>;})}
+          <span className="mono" style={{color:out?"var(--grey)":"var(--teal)",fontSize:13}}>{out?`${signp(pts)} p · tippunut`:`${signp(pts)} p`}</span></div>;})}
       {(()=>{const t=p.team;const out=t&&teamstats[t]&&teamstats[t].out;const pts=t?teamPoints(t,matches,teamstats):0;
         return <div className={"prow champ"+(out?" out":"")}><span className="poslab">Mestarimaa</span>
           <span style={{fontWeight:700}}>{t?<span className="flag">{flag(t)}</span>:null}{t||"—"}</span>
-          <span className="mono" style={{color:out?"var(--grey)":"var(--teal)",fontSize:13}}>{out?`+${pts} p · tippunut`:`+${pts} p`}</span></div>;})()}
+          <span className="mono" style={{color:out?"var(--grey)":"var(--teal)",fontSize:13}}>{out?`${signp(pts)} p · tippunut`:`${signp(pts)} p`}</span></div>;})()}
     </div>
     {Object.keys(GROUPS).map(g=>{
       const ms=matches.filter(m=>m.group===g);
