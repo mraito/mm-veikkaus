@@ -366,7 +366,7 @@ function matchPoints(pred,m){
   return m.dbl?base*2:base;
 }
 const pkey=(name,country)=>`${(name||"").trim()}__${country||""}`;
-const signp=(n)=> (n<0?`${n}`:`+${n}`);
+const signp=(n)=> `${n}`;
 function playerPts(pos,tally){ if(!tally) return 0; const k=POS[pos];
   return (+tally.cs||0)*k.cs+(+tally.goal||0)*k.goal+(+tally.assist||0)*k.assist+(+tally.red||0)*k.red+(+tally.og||0)*k.og; }
 function autoGroupWins(team,matches){ let n=0; (matches||[]).forEach(mt=>{
@@ -474,6 +474,7 @@ function App(){
         : <Fragment>
             <PotBar count={Object.keys(preds).length} played={matches.filter(m=>m.hg!==""&&m.hg!=null).length} total={matches.length} stake={config.stake||10}/>
             {config.locked&&<Live matches={matches} preds={preds} today={todayISO()}/>}
+            {config.locked&&<Porssi preds={preds} playerstats={playerstats}/>}
             <Karki preds={preds} scores={scores} matches={matches} playerstats={playerstats} teamstats={teamstats} locked={config.locked} onOpen={id=>setDetail(id)} stake={config.stake||10}/>
           </Fragment>)}
       {tab==="ottelut"&&<Ottelut matches={matches} preds={preds}/>}
@@ -817,7 +818,46 @@ function Live({matches,preds,today}){
   </div>);
 }
 
-/* ===================== VEIKKAAJAN OTTELUKORTTI ===================== */
+/* ===================== PISTEPÖRSSI (valitut pelaajat) ===================== */
+function Porssi({preds,playerstats}){
+  const [open,setOpen]=useState(false);
+  const names=Object.keys(preds);
+  const map={};
+  names.forEach(id=>POS_ORDER.forEach(pos=>{ const pk=preds[id].picks&&preds[id].picks[pos];
+    if(pk&&pk.name){ const kk=pkey(pk.name,pk.country)+"__"+pos;
+      if(!map[kk]) map[kk]={name:pk.name,country:pk.country,pos,tally:playerstats[pkey(pk.name,pk.country)]||{},pickers:[]};
+      map[kk].pickers.push(preds[id].name||id); } }));
+  let arr=Object.values(map).map(v=>({...v,pts:playerPts(v.pos,v.tally)})).filter(v=>v.pts!==0);
+  if(arr.length===0) return null;
+  arr.sort((a,b)=>b.pts-a.pts || (a.country||"").localeCompare(b.country||"","fi") || (a.name||"").localeCompare(b.name||"","fi"));
+  const show=open?arr:arr.slice(0,5); const rest=arr.length-show.length;
+  const parts=(v)=>{ const k=POS[v.pos],t=v.tally,out=[];
+    const g=Number(t.goal||0); if(g&&k.goal) out.push([g+" "+(g===1?"maali":"maalia"),g*k.goal]);
+    const a=Number(t.assist||0); if(a&&k.assist) out.push([a+" "+(a===1?"syöttö":"syöttöä"),a*k.assist]);
+    const c=Number(t.cs||0); if(c&&k.cs) out.push([c+" "+(c===1?"nollapeli":"nollapeliä"),c*k.cs]);
+    const r=Number(t.red||0); if(r) out.push([r+" "+(r===1?"punainen kortti":"punaista korttia"),r*k.red]);
+    const o=Number(t.og||0); if(o) out.push([o+" "+(o===1?"oma maali":"omaa maalia"),o*k.og]);
+    return out; };
+  return (<div className="card">
+    <div className="lab" style={{color:"var(--blue2)"}}>Pistepörssi — valitut pelaajat</div>
+    {show.map((v,i)=>{ const ch=parts(v); return (
+      <div key={i} className="liverow">
+        <div className="row between" style={{alignItems:"center"}}>
+          <div style={{display:"flex",alignItems:"center",gap:9,minWidth:0}}>
+            <span className={"rank"+(i===0?" gold":"")} style={{minWidth:22,textAlign:"center"}}>{i+1}</span>
+            <div style={{minWidth:0}}><span style={{fontWeight:800,fontSize:15}}>{flag(v.country)} {v.name}</span> <span className="tiny" style={{textTransform:"uppercase",letterSpacing:".04em"}}>· {POS[v.pos].label}</span></div>
+          </div>
+          <span className="mono" style={{fontSize:18,fontWeight:700,color:v.pts<0?"var(--red)":"var(--teal)"}}>{signp(v.pts)} p</span>
+        </div>
+        <div className="row wrapf" style={{gap:6,marginTop:5}}>
+          {ch.map((c,j)=><span key={j} style={{fontSize:12,fontWeight:700,borderRadius:8,padding:"3px 9px",background:c[1]<0?"rgba(255,93,82,.13)":"rgba(57,229,124,.12)",color:c[1]<0?"var(--red)":"var(--teal)"}}>{c[0]} · {signp(c[1])}</span>)}
+        </div>
+        <div className="tiny" style={{marginTop:6}}>Valinnut: {v.pickers.join(", ")}</div>
+      </div>
+    );})}
+    {arr.length>5&&<div style={{textAlign:"center",marginTop:10}}><span className="morechip" onClick={()=>setOpen(o=>!o)}>{open?"▴ vähemmän":"+"+rest+" ▾"}</span></div>}
+  </div>);
+}
 function Kortti({p,sc,matches,teamstats,playerstats,onBack}){
   const [open,setOpen]=useState({"A":true});
   return (<div>
