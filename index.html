@@ -415,9 +415,17 @@ function App(){
     if(!cfgOk) return;
     const subs=[];
     subs.push(docRef("matches").onSnapshot(d=>{
-      const lst=d.exists?(d.data().list||[]):null;
-      if(!lst||!lst[0]||!lst[0].date){ const sd=buildSeedMatches(); docRef("matches").set({list:sd}).catch(e=>setErr(e.message)); setMatches(sd); }
-      else setMatches(lst);
+      const fromCache = d.metadata && d.metadata.fromCache;
+      if(!d.exists){
+        // Dokumenttia ei ole: kylvä pohja VAIN jos tieto on palvelimelta (ei välimuistin "ei tietoa" -tila).
+        if(!fromCache){ const sd=buildSeedMatches(); docRef("matches").set({list:sd}).catch(e=>setErr(e.message)); setMatches(sd); }
+        return;
+      }
+      const lst=d.data().list;
+      if(Array.isArray(lst)&&lst.length&&lst[0]&&lst[0].date){ setMatches(lst); }
+      // Dokumentti on olemassa mutta lista näyttää tyhjältä/rikkinäiseltä:
+      // EI KOSKAAN ylikirjoiteta tietokantaa. Näytetään pohja vain muistissa jos meillä ei vielä ole mitään.
+      else { setMatches(prev=>prev||buildSeedMatches()); }
     },e=>setErr(e.message)));
     subs.push(docRef("config").onSnapshot(d=>{ if(d.exists) setConfig({locked:false,pin:"",stake:10,...d.data()}); },e=>setErr(e.message)));
     subs.push(docRef("teamstats").onSnapshot(d=>{ setTeamstats(d.exists?(d.data().map||{}):{}); }));
@@ -993,7 +1001,14 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
   useEffect(()=>{setMDraft(matches);},[matches]);
   const fl=(t)=>toast(t, /virhe/i.test(t)?"err":"");
   const upM=(id,patch)=>setMDraft(ms=>ms.map(m=>m.id===id?{...m,...patch}:m));
-  const saveM=async()=>{ try{await docRef("matches").set({list:mDraft});fl("Tulokset tallennettu");}catch(e){fl("Virhe: "+e.message);} };
+  const saveM=async()=>{
+    const filled=a=>(a||[]).filter(m=>m.hg!==""&&m.hg!=null&&m.ag!==""&&m.ag!=null).length;
+    const before=filled(matches), after=filled(mDraft);
+    if(before-after>=3){
+      if(!window.confirm("Huom: tämä tallennus näyttää tyhjentävän "+(before-after)+" jo syötettyä tulosta. Jos et tarkoittanut tätä, peruuta ja lataa sivu uudelleen (Ctrl+F5). Tallennetaanko silti?")) return;
+    }
+    try{await docRef("matches").set({list:mDraft});fl("Tulokset tallennettu");}catch(e){fl("Virhe: "+e.message);}
+  };
 
   // pelaajatilastot
   const picked=useMemo(()=>{ const map={};
@@ -1006,14 +1021,28 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
   const [psDraft,setPsDraft]=useState(playerstats);
   useEffect(()=>{setPsDraft(playerstats);},[playerstats]);
   const setStat=(k,f,v)=>{ if(!/^[0-9]{0,2}$/.test(v))return; setPsDraft(s=>({...s,[k]:{...(s[k]||{}),[f]:v}})); };
-  const savePs=async()=>{ try{await docRef("playerstats").set({map:psDraft});fl("Pelaajatilastot tallennettu");}catch(e){fl("Virhe: "+e.message);} };
+  const psFilled=map=>Object.keys(map||{}).filter(k=>Object.values(map[k]||{}).some(v=>v!==""&&v!=null&&Number(v)>0)).length;
+  const savePs=async()=>{
+    const before=psFilled(playerstats), after=psFilled(psDraft);
+    if(before-after>=3){
+      if(!window.confirm("Huom: tämä tallennus näyttää tyhjentävän "+(before-after)+" pelaajan jo syötetyt tilastot. Jos et tarkoittanut tätä, peruuta ja lataa sivu uudelleen (Ctrl+F5). Tallennetaanko silti?")) return;
+    }
+    try{await docRef("playerstats").set({map:psDraft});fl("Pelaajatilastot tallennettu");}catch(e){fl("Virhe: "+e.message);}
+  };
 
   // joukkuetilastot + tippuminen
   const [tsDraft,setTsDraft]=useState(teamstats);
   useEffect(()=>{setTsDraft(teamstats);},[teamstats]);
   const setTeam=(t,f,v)=>setTsDraft(s=>({...s,[t]:{...(s[t]||{}),[f]:v}}));
   const champTeams=[...new Set(Object.values(preds).map(p=>p.team).filter(Boolean))];
-  const saveTs=async()=>{ try{await docRef("teamstats").set({map:tsDraft});fl("Joukkuetiedot tallennettu");}catch(e){fl("Virhe: "+e.message);} };
+  const tsFilled=map=>Object.keys(map||{}).filter(t=>{const x=map[t]||{};return (Number(x.wins)>0)||x.champ||x.out;}).length;
+  const saveTs=async()=>{
+    const before=tsFilled(teamstats), after=tsFilled(tsDraft);
+    if(before-after>=3){
+      if(!window.confirm("Huom: tämä tallennus näyttää tyhjentävän "+(before-after)+" joukkueen jo syötetyt tiedot. Jos et tarkoittanut tätä, peruuta ja lataa sivu uudelleen (Ctrl+F5). Tallennetaanko silti?")) return;
+    }
+    try{await docRef("teamstats").set({map:tsDraft});fl("Joukkuetiedot tallennettu");}catch(e){fl("Virhe: "+e.message);}
+  };
 
   // muiden korjaus
   const [editId,setEditId]=useState("");
