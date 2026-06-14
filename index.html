@@ -92,7 +92,7 @@ button.ghost:hover{border-color:var(--grn)}
 .tm{font-weight:700;font-size:15px}.tm.r{text-align:right}
 .pill{font-size:11px;font-weight:800;padding:2px 7px;border-radius:999px}
 .pill.g{background:rgba(57,229,124,.16);color:var(--grn)}
-.pill.g2{background:rgba(57,229,124,.10);color:var(--teal)}
+.pill.g2{background:rgba(56,200,232,.18);color:#4fd0ec}
 .pill.y{background:rgba(255,207,63,.16);color:var(--amb)}
 .pill.z{background:rgba(255,93,82,.13);color:var(--red)}
 .pill.dbl{background:rgba(255,207,63,.18);color:var(--amb);border:1px solid var(--amb2)}
@@ -781,17 +781,18 @@ function Live({matches,preds,today}){
   const last=[...played].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:b.id-a.id).slice(0,3);
   const next=[...upcoming].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.id-b.id).slice(0,3);
   const names=Object.keys(preds);
-  const scorers=(m)=>names.map(id=>({n:preds[id].name||id,pt:matchPoints(preds[id].scores&&preds[id].scores[m.id],m)})).filter(z=>z.pt!=null&&z.pt>0).sort((a,b)=>b.pt-a.pt);
+  const results=(m)=>names.map(id=>({n:preds[id].name||id,pr:preds[id].scores&&preds[id].scores[m.id],pt:matchPoints(preds[id].scores&&preds[id].scores[m.id],m)})).filter(z=>z.pr&&z.pr.h!==""&&z.pt!=null).sort((a,b)=>b.pt-a.pt);
   const predsFor=(m)=>names.map(id=>({n:preds[id].name||id,pr:preds[id].scores&&preds[id].scores[m.id]})).filter(x=>x.pr&&x.pr.h!=="");
   return (<div className="livewrap">
     {last.length>0&&<div className="card">
       <div className="lab" style={{color:"var(--blue2)"}}>Edelliset ottelut</div>
-      {last.map(m=>{const sc=scorers(m);return <div key={m.id} className="liverow">
+      {last.map(m=>{const rs=results(m);const open=exp["L"+m.id];const show=open?rs:rs.slice(0,3);const rest=rs.length-show.length;return <div key={m.id} className="liverow">
         <div className="row between"><div className="tm">{flag(m.home)} {m.home} <span className="mut">–</span> {flag(m.away)} {m.away}{m.dbl&&<span className="pill dbl" style={{marginLeft:6}}>×2</span>}</div>
           <div className="mono" style={{fontSize:17}}>{m.hg}–{m.ag}</div></div>
-        <div className="row wrapf" style={{gap:5,marginTop:5}}>
+        <div className="row wrapf" style={{gap:6,marginTop:5}}>
           <span className="tiny" style={{marginRight:2}}>{dateLabel(m.date,today)} ·</span>
-          {sc.length===0?<span className="tiny">ei pisteitä</span>:sc.slice(0,5).map((z,i)=>{const base=m.dbl?z.pt/2:z.pt;const cls=base>=5?"g":base===4?"g2":"y";return <span key={i} className={"pill "+cls}>{z.pt}p {z.n}</span>;})}
+          {rs.length===0?<span className="tiny">ei veikkauksia</span>:show.map((z,i)=>{const base=m.dbl?z.pt/2:z.pt;const cls=base>=5?"g":base===4?"g2":base===3?"y":"z";return <span key={i} className={"pill "+cls}>{z.pt}p {z.n}</span>;})}
+          {rs.length>3&&<span className="morechip" onClick={()=>setExp(e=>({...e,["L"+m.id]:!open}))}>{open?"▴ vähemmän":"+"+rest+" ▾"}</span>}
         </div></div>;})}
     </div>}
     {next.length>0&&<div className="card">
@@ -998,7 +999,10 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
   const picked=useMemo(()=>{ const map={};
     Object.values(preds).forEach(p=>POS_ORDER.forEach(pos=>{ const pk=p.picks&&p.picks[pos];
       if(pk&&pk.name){ const k=pkey(pk.name,pk.country); (map[k]=map[k]||{name:pk.name,country:pk.country,pos:new Set()}).pos.add(pos);} }));
-    return Object.entries(map).map(([k,v])=>({k,...v,pos:[...v.pos]})); },[preds]);
+    return Object.entries(map).map(([k,v])=>({k,...v,pos:[...v.pos]}))
+      .sort((a,b)=>{ const c=(a.country||"").localeCompare(b.country||"","fi"); if(c!==0) return c;
+        const pa=Math.min(...a.pos.map(p=>POS_ORDER.indexOf(p))), pb=Math.min(...b.pos.map(p=>POS_ORDER.indexOf(p)));
+        if(pa!==pb) return pa-pb; return (a.name||"").localeCompare(b.name||"","fi"); }); },[preds]);
   const [psDraft,setPsDraft]=useState(playerstats);
   useEffect(()=>{setPsDraft(playerstats);},[playerstats]);
   const setStat=(k,f,v)=>{ if(!/^[0-9]{0,2}$/.test(v))return; setPsDraft(s=>({...s,[k]:{...(s[k]||{}),[f]:v}})); };
@@ -1056,7 +1060,7 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
         <h2 style={{fontSize:18,margin:"4px 0 8px"}}>Maalit & tuplaottelu</h2>
         {Object.keys(GROUPS).map(g=>(
           <div key={g}>
-            <div className="section-h" onClick={()=>setOpen(o=>({...o,["m"+g]:!o["m"+g]}))}><span>Lohko {g}</span><span>{open["m"+g]?"–":"+"}</span></div>
+            <div className="section-h" onClick={()=>setOpen(o=>({...o,["m"+g]:!o["m"+g]}))}><span>Lohko {g} — {GROUPS[g].join(", ")}</span><span>{open["m"+g]?"–":"+"}</span></div>
             {open["m"+g]&&mDraft.filter(m=>m.group===g).map(mt=>(
               <div key={mt.id} style={{padding:"8px 0",borderBottom:"1px dashed var(--line)"}}>
                 <div className="row wrapf" style={{gap:6}}>
