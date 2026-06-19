@@ -477,7 +477,7 @@ function App(){
             {config.locked&&<Porssi preds={preds} playerstats={playerstats}/>}
             <Karki preds={preds} scores={scores} matches={matches} playerstats={playerstats} teamstats={teamstats} locked={config.locked} onOpen={id=>setDetail(id)} stake={config.stake||10}/>
           </Fragment>)}
-      {tab==="ottelut"&&<Ottelut matches={matches} preds={preds}/>}
+      {tab==="ottelut"&&<Ottelut matches={matches} preds={preds} locked={config.locked}/>}
       {tab==="saannot"&&<Saannot stake={config.stake!=null?config.stake:10}/>}
       {tab==="jarjestaja"&&<Admin matches={matches} preds={preds} config={config} teamstats={teamstats} playerstats={playerstats}/>}
       <p className="tiny" style={{marginTop:28,textAlign:"center"}}>
@@ -859,7 +859,7 @@ function Porssi({preds,playerstats}){
   </div>);
 }
 function Kortti({p,sc,matches,teamstats,playerstats,onBack}){
-  const [open,setOpen]=useState({"A":true});
+  const [open,setOpen]=useState({});
   return (<div>
     <div className="card">
       <button className="ghost" onClick={onBack}>‹ Tulostaulukko</button>
@@ -886,7 +886,7 @@ function Kortti({p,sc,matches,teamstats,playerstats,onBack}){
     {Object.keys(GROUPS).map(g=>{
       const ms=matches.filter(m=>m.group===g);
       return <div className="card" key={g}>
-        <div className="section-h" onClick={()=>setOpen(o=>({...o,[g]:!o[g]}))}><span>Lohko {g}</span><span>{open[g]?"–":"+"}</span></div>
+        <div className="section-h" onClick={()=>setOpen(o=>({...o,[g]:!o[g]}))}><span>Lohko {g} — {GROUPS[g].join(", ")}</span><span>{open[g]?"–":"+"}</span></div>
         {open[g]&&ms.map(mt=>{
           const pr=p.scores&&p.scores[mt.id]; const played=mt.hg!==""&&mt.hg!=null;
           const pt=matchPoints(pr,mt); const base=(played&&pt!=null)?(mt.dbl?pt/2:pt):null;
@@ -905,17 +905,20 @@ function Kortti({p,sc,matches,teamstats,playerstats,onBack}){
 }
 
 /* ===================== OTTELUT ===================== */
-function Ottelut({matches,preds}){
+function Ottelut({matches,preds,locked}){
   const today=todayISO();
   const names=Object.keys(preds).sort((a,b)=>(preds[a].name||"").localeCompare(preds[b].name||"","fi"));
   const dates=useMemo(()=>[...new Set(matches.map(m=>m.date))].sort(),[matches]);
   const defaultDay=useMemo(()=>dates.find(d=>d>=today)||dates[dates.length-1],[dates,today]);
   const [view,setView]=useState("lohko");
-  const [open,setOpen]=useState({"A":true});
+  const [open,setOpen]=useState({});
   const [openDay,setOpenDay]=useState(()=>({[defaultDay]:true}));
+  const [expPred,setExpPred]=useState({});
   const dayTitle=(ds)=>{ const d=new Date(ds+"T12:00:00"); const f=WD[d.getDay()]+" "+d.getDate()+"."+(d.getMonth()+1)+"."; const rel=dateLabel(ds,today); return rel===f?f:rel+" · "+f; };
   const matchBlock=(mt)=>{
     const done=mt.hg!==""&&mt.ag!==""&&mt.hg!=null&&mt.ag!=null;
+    const predList=(!done&&locked)?names.map(id=>({n:preds[id].name||id,pr:preds[id].scores&&preds[id].scores[mt.id]})).filter(x=>x.pr&&x.pr.h!==""&&x.pr.a!==""):[];
+    const op=expPred[mt.id]; const showP=op?predList:predList.slice(0,3); const restP=predList.length-showP.length;
     return <div key={mt.id} style={{padding:"10px 0",borderBottom:"1px dashed var(--line)"}}>
       <div className="row between">
         <div className="tm">{flag(mt.home)} {mt.home} <span className="mut">vs</span> {flag(mt.away)} {mt.away}{mt.dbl&&<span className="pill dbl" style={{marginLeft:6}}>×2</span>}</div>
@@ -926,6 +929,10 @@ function Ottelut({matches,preds}){
           if(!pr||pr.h===""||pr.a==="") return null;
           const base=mt.dbl?pt/2:pt; const cls=base>=5?"g":base===4?"g2":base===3?"y":"z";
           return <span key={id} className={"pill "+cls}>{preds[id].name||id} {pr.h}-{pr.a} · {pt}p</span>; })}
+      </div>}
+      {!done&&locked&&<div className="row wrapf" style={{gap:6,marginTop:6}}>
+        {predList.length===0?<span className="tiny">ei veikkauksia</span>:showP.map((x,i)=><span key={i} className="predchip">{x.n} <span className="s">{x.pr.h}-{x.pr.a}</span></span>)}
+        {predList.length>3&&<span className="morechip" onClick={()=>setExpPred(e=>({...e,[mt.id]:!op}))}>{op?"▴ vähemmän":"+"+restP+" ▾"}</span>}
       </div>}
     </div>;
   };
@@ -943,7 +950,7 @@ function Ottelut({matches,preds}){
 
       {view==="lohko" && Object.keys(GROUPS).map(g=>(
         <div className="card" key={g}>
-          <div className="section-h" onClick={()=>setOpen(o=>({...o,[g]:!o[g]}))}><span>Lohko {g}</span><span>{open[g]?"–":"+"}</span></div>
+          <div className="section-h" onClick={()=>setOpen(o=>({...o,[g]:!o[g]}))}><span>Lohko {g} — {GROUPS[g].join(", ")}</span><span>{open[g]?"–":"+"}</span></div>
           {open[g]&&matches.filter(m=>m.group===g).map(matchBlock)}
         </div>
       ))}
