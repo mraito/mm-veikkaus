@@ -695,8 +695,8 @@ function KOLive({koBracket,koPreds,today,reveal}){
         const open=exp["D"+s.r+s.i]; const show=open?picks:picks.slice(0,3); const rest=picks.length-show.length;
         return <div key={s.r+s.i} className="liverow">
           <div className="row between"><div className="tm">{flag(s.a)} {s.a} <span className="mut">–</span> {flag(s.b)} {s.b}</div>
-            <div className="row" style={{gap:6}}><span className="tiny">{rmeta(s.r).short}</span><span className="pill g">{s.win}</span></div></div>
-          <div className="tiny" style={{marginTop:3}}>{dateLabel(s.d,today)} · {s.p} · Ottelu {s.mn}</div>
+            <div className="row" style={{gap:6}}><span className="pill g">{s.win}</span><span className="tiny" style={{color:"var(--teal)",fontWeight:700}}>{rmeta(s.r).short}</span></div></div>
+          <div className="tiny" style={{marginTop:3}}>{dateLabel(s.d,today)} · {s.p}</div>
           {reveal?<div className="row wrapf" style={{gap:6,marginTop:5}}>
             {picks.length===0?<span className="tiny">ei veikkauksia</span>:show.map((x,k)=>{ const ok=x.pk===s.win; const base=KO_PTS[s.r]||0; const pts=ok?(x.isCh?base*2:base):0; return <span key={k} className={"pill "+(ok?(x.isCh?"gold":"g"):"z")}><b>{pts}p</b> {x.n}</span>; })}
             {picks.length>3&&<span className="morechip" onClick={()=>setExp(e=>({...e,["D"+s.r+s.i]:!open}))}>{open?"▴ vähemmän":"+"+rest+" ▾"}</span>}
@@ -710,7 +710,7 @@ function KOLive({koBracket,koPreds,today,reveal}){
         return <div key={s.r+s.i} className="liverow">
           <div className="row between"><div className="tm">{flag(s.a)} {s.a} <span className="mut">–</span> {flag(s.b)} {s.b}</div>
             <span className="tiny" style={{color:"var(--teal)",fontWeight:700}}>{rmeta(s.r).short}</span></div>
-          <div className="tiny" style={{marginTop:3}}>{dateLabel(s.d,today)} klo {s.t} <span style={{color:"var(--teal)"}}>({koFiTime(s.t)})</span>{s.c?<span> <span className={"chpill "+(s.c==="MTV"?"mtv":"yle")}>{s.c}</span></span>:null} · {s.p} · Ottelu {s.mn}</div>
+          <div className="tiny" style={{marginTop:3}}>{dateLabel(s.d,today)} klo {s.t} <span style={{color:"var(--teal)"}}>({koFiTime(s.t)})</span>{s.c?<span> <span className={"chpill "+(s.c==="MTV"?"mtv":"yle")}>{s.c}</span></span>:null} · {s.p}</div>
           {reveal?<div className="row wrapf" style={{gap:6,marginTop:6}}>
             {picks.length===0?<span className="tiny">ei veikkauksia</span>:show.map((x,k)=><span key={k} className="predchip" style={{fontSize:11}}>{x.n} <span style={{color:"var(--teal)"}}>{x.pk}</span></span>)}
             {picks.length>3&&<span className="morechip" onClick={()=>setExp(e=>({...e,["U"+s.r+s.i]:!open}))}>{open?"▴ vähemmän":"+"+rest+" ▾"}</span>}
@@ -820,19 +820,21 @@ function KOTree({koBracket,koPreds,koConfig}){
   if(!koReadyTeams(teams)){
     const Hs=1024;
     const colsS=[{key:"R32",title:"Round 32"},{key:"R16",title:"Round 16"},{key:"QF",title:"Puolivälierät"},{key:"SF",title:"Välierät"},{key:"FIN",title:"Finaali"}];
-    const srow=(label,isSlot)=> isSlot
-      ? <div className="kt-trow"><span className="kt-fl"/><span className="kt-nm" style={{fontWeight:600,fontSize:13}}>{label}</span></div>
-      : <div className="kt-trow kt-ph"><span className="kt-fl"/><span className="kt-nm">?</span></div>;
-    const slotPair=(key,sl)=>{ if(key==="R32"){ const parts=(KO_R32_DESC[sl]||"").split(" v "); return [parts[0]||"?",parts[1]||"?"]; } return [null,null]; };
+    const slotCell=(key,sl,side)=>{ if(key!=="R32") return null; const pair=teams[sl]||{}; const team=side===0?pair.a:pair.b; if(team) return {team}; const parts=(KO_R32_DESC[sl]||"").split(" v "); return {label:(side===0?parts[0]:parts[1])||"?"}; };
+    const cell=(c)=> c&&c.team
+      ? <div className="kt-trow">{flag(c.team)}<span className="kt-nm">{c.team}</span></div>
+      : c&&c.label
+        ? <div className="kt-trow"><span className="kt-fl"/><span className="kt-nm" style={{fontWeight:600,fontSize:13,color:"var(--mut)"}}>{c.label}</span></div>
+        : <div className="kt-trow kt-ph"><span className="kt-fl"/><span className="kt-nm">?</span></div>;
     return (<div>
-      <div className="note" style={{marginBottom:10}}>Tästä näet, miten pudotuspelikaavio etenee. Joukkueet täydentyvät paikoille, kun lohkovaihe on pelattu. Lyhenteet kertovat lohkosijoituksen: esimerkiksi 1F on lohkon F voittaja ja 2A lohkon A kakkonen. Merkintä 3 (ABCDF) tarkoittaa yhtä parhaista kolmossijoista, joka tulee jostakin suluissa mainituista lohkoista.</div>
+      <div className="note" style={{marginBottom:10}}>Tästä näet, miten pudotuspelikaavio muodostuu. Joukkueet ilmestyvät paikoilleen sitä mukaa kun ne varmistuvat lohkovaiheessa. Tyhjillä paikoilla lukee lohkosijoitus: esimerkiksi 1F on lohkon F voittaja ja 2A lohkon A kakkonen, ja merkintä 3 (ABCDF) tarkoittaa yhtä parhaista kolmossijoista suluissa mainituista lohkoista.</div>
       <div className="kt-scroll"><div className="kt-bracket">
         {colsS.map((c,ci)=>{ const order=KO_TREE[c.key]; const slot=Hs/order.length; const isFirst=ci===0; const isLast=ci===colsS.length-1;
           return <div className="kt-col" key={c.key}><div className="kt-head">{c.title}</div>
             <div className="kt-round" style={{height:Hs}}>
-              {order.map((sl,mi)=>{ const [a,b]=slotPair(c.key,sl); const isR32=c.key==="R32";
+              {order.map((sl,mi)=>{
                 return <div className="kt-match" style={{"--slot":slot+"px"}} key={mi}>
-                  <div className="kt-box">{srow(a,isR32)}{srow(b,isR32)}</div>
+                  <div className="kt-box">{cell(slotCell(c.key,sl,0))}{cell(slotCell(c.key,sl,1))}</div>
                   {!isLast&&<i className="kt-stub-r"/>}
                   {!isFirst&&<i className="kt-stub-l"/>}
                   {!isLast&&mi%2===0&&<i className="kt-vline"/>}
@@ -843,7 +845,7 @@ function KOTree({koBracket,koPreds,koConfig}){
         })}
       </div></div>
       <div className="card kt-bronze"><div className="kt-head" style={{textAlign:"left",color:"#c9803f"}}>Pronssiottelu</div>
-        <div className="kt-box" style={{width:200}}>{srow(null,false)}{srow(null,false)}</div></div>
+        <div className="kt-box" style={{width:200}}>{cell(null)}{cell(null)}</div></div>
     </div>);
   }
   const H=1024;
