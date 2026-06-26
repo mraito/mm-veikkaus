@@ -596,7 +596,7 @@ function KOVeikkaus({koBracket,koConfig,koPreds,mainNames}){
       <div className="row wrapf" style={{marginTop:6}}>
         <select defaultValue="" onChange={e=>{const v=e.target.value;e.target.value="";if(v)requestOpen(v);}} style={{minWidth:240}}>
           <option value="">— valitse nimesi —</option>
-          {names.map(n=>{const has=koPreds[nameId(n)];return <option key={n} value={n}>{n+(has?(has.pin?" 🔒 (tehty)":" ✓ (tehty)"):"")}</option>;})}
+          {names.map(n=>{const has=koPreds[nameId(n)];return <option key={n} value={n}>{n+(has?(has.pin?" 🔒":" ✓"):"")}</option>;})}
         </select>
       </div>
       <p className="tiny" style={{marginTop:6}}>Valitse nimesi listalta. Voit halutessasi suojata veikkauksesi PIN-koodilla seuraavalla sivulla. PIN on vapaaehtoinen ja eri kuin pääkisan PIN.</p>
