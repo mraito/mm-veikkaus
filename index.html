@@ -591,7 +591,7 @@ function KOVeikkaus({koBracket,koConfig,koPreds,mainNames}){
     <div className="card">
       <div className="lab" style={{color:"var(--blue2)"}}>Pudotuspeliveikkaus</div>
       <div className="note">Veikkaa pudotuspelien kaavio: valitse jokaiseen otteluun jatkoonmenijä aina finaaliin saakka. Pudotuspeliveikkaus on erillinen pääkisasta eikä vaikuta sen pisteisiin, eikä siihen liity erillistä panosta. Valitse nimesi alta, niin pääset täyttämään kaavion. Voit tallentaa keskeneräisenkin ja jatkaa myöhemmin. Takaraja on <b>28.6.2026 klo 21.00</b>, tunti ennen ensimmäistä pudotuspeliottelua.</div>
-      {!ready&&<div className="note warn" style={{marginTop:0}}>Pudotuspelijoukkueet syötetään, kun lohkovaihe on pelattu. Voit jo tutustua ja varata nimesi — kaavio aukeaa täytettäväksi silloin.</div>}
+      {!ready&&<div className="note warn" style={{marginTop:0}}>Joukkueet täydentyvät kaavioon sitä mukaa kun ne varmistuvat lohkovaiheessa. Voit veikata jo varmistuneet ottelut ja tallentaa, tai vain varata nimesi nyt — ja täydentää loput, kun kaikki joukkueet ovat selvillä.</div>}
       <div className="lab">Valitse nimesi</div>
       <div className="row wrapf" style={{marginTop:6}}>
         <select defaultValue="" onChange={e=>{const v=e.target.value;e.target.value="";if(v)requestOpen(v);}} style={{minWidth:240}}>
@@ -632,10 +632,10 @@ function KOVeikkaus({koBracket,koConfig,koPreds,mainNames}){
         <div className="row between wrapf">
           <div><div className="lab">Pudotuspeliveikkaaja</div><div style={{fontSize:22,fontWeight:800}}>{name}</div></div>
           <div className="row"><button className="ghost" onClick={()=>{setDraft(null);setMsg("");}}>Vaihda nimeä</button>
-            <button className="act" onClick={save} disabled={locked}>{ready?"Tallenna":"Varaa nimi"}</button></div>
+            <button className="act" onClick={save} disabled={locked}>Tallenna</button></div>
         </div>
         <div className="tiny" style={{marginTop:8}}>Pudotuspeliveikkaus ei vaikuta pääkisan pisteisiin.</div>
-        {!locked&&!ready&&<div className="note warn" style={{marginTop:10,marginBottom:0}}>Pudotuspelijoukkueita ei ole vielä syötetty. Kaavio täyttyy, kun lohkovaihe on pelattu — voit jo varata nimesi ja asettaa PIN-koodin ja palata täyttämään kaavion myöhemmin.</div>}
+        {!locked&&!ready&&<div className="note warn" style={{marginTop:10,marginBottom:0}}>Kaikkia pudotuspelijoukkueita ei ole vielä syötetty. Voit jo veikata ne ottelut, joiden joukkueet ovat selvillä, ja tallentaa. Loput paikat täydentyvät, kun joukkueet varmistuvat — viimeistele veikkauksesi viimeistään ennen takarajaa.</div>}
         {!locked&&ready&&<div className="note" style={{marginTop:10,marginBottom:0}}>Täytä viimeistään <b>28.6.2026 klo 21.00</b>. Silloin pudotuspelit lukitaan. Muista tallentaa.</div>}
         {msg&&<div className="note" style={{marginBottom:0}}>{msg}</div>}
         {locked&&<div className="note warn">🔒 Pudotuspeliveikkaukset on lukittu.</div>}
