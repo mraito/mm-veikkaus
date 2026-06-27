@@ -98,7 +98,7 @@ button.ghost:hover{border-color:var(--grn)}
 .pill.g2{background:rgba(56,200,232,.18);color:#4fd0ec}
 .pill.y{background:rgba(255,207,63,.16);color:var(--amb)}
 .pill.z{background:rgba(255,93,82,.13);color:var(--red)}
-.pill.gold{background:linear-gradient(120deg,#a9851a,#ffcf3f);color:#1a1400}
+.pill.gold{background:#f5c43a;color:#1a1400}
 .pill.dbl{background:rgba(255,207,63,.18);color:var(--amb);border:1px solid var(--amb2)}
 .kpi{font-family:'Anton';font-size:30px;line-height:1}
 .grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
@@ -590,7 +590,7 @@ function KOVeikkaus({koBracket,koConfig,koPreds,mainNames}){
     return (
     <div className="card">
       <div className="lab" style={{color:"var(--blue2)"}}>Pudotuspeliveikkaus</div>
-      <div className="note">Veikkaa pudotuspelien kaavio: valitse jokaiseen otteluun jatkoonmenijä aina finaaliin saakka. Pudotuspeliveikkaus on erillinen pääkisasta eikä vaikuta sen pisteisiin, eikä siihen liity erillistä panosta. Valitse nimesi alta, niin pääset täyttämään kaavion. Voit tallentaa keskeneräisenkin ja jatkaa myöhemmin. Takaraja on <b>28.6.2026 klo 21.00</b>, tunti ennen ensimmäistä pudotuspeliottelua.</div>
+      <div className="note">Veikkaa pudotuspelien kaavio: valitse jokaiseen otteluun jatkoonmenijä aina finaaliin saakka. Pudotuspeliveikkaus on erillinen pääkisasta eikä vaikuta sen pisteisiin. Siihen ei liity erillistä panosta, mutta voittaja saa 10 % potista. Valitse nimesi alta, niin pääset täyttämään kaavion. Voit tallentaa keskeneräisenkin ja jatkaa myöhemmin. Takaraja on <b>28.6.2026 klo 21.00</b>, tunti ennen ensimmäistä pudotuspeliottelua.</div>
       {!ready&&<div className="note warn" style={{marginTop:0}}>Joukkueet täydentyvät kaavioon sitä mukaa kun ne varmistuvat lohkovaiheessa. Voit veikata jo varmistuneet ottelut ja tallentaa, tai vain varata nimesi nyt — ja täydentää loput, kun kaikki joukkueet ovat selvillä.</div>}
       <div className="lab">Valitse nimesi</div>
       <div className="row wrapf" style={{marginTop:6}}>
@@ -720,13 +720,14 @@ function KOLive({koBracket,koPreds,today,reveal}){
   </div>);
 }
 
-function KO({koBracket,koConfig,koPreds}){
+function KO({koBracket,koConfig,koPreds,mainPot}){
   const B=koBracket||{}; const aw=B.winners||{};
   const locked=!!(koConfig&&koConfig.locked);
   const ids=Object.keys(koPreds);
   const [open,setOpen]=useState({});
   const [detail,setDetail]=useState(null);
   const count=ids.length;
+  const koPot=(mainPot||0)*0.1;
   const rows=koRows(koPreds,aw);
   const prizes=computePrizes(rows.map(r=>({total:r.total})),0);
   const mcls=(rank)=>rank===1?"g":rank===2?"s":rank===3?"b":null;
@@ -735,6 +736,7 @@ function KO({koBracket,koConfig,koPreds}){
 
   return (
     <div>
+      {koPot>0&&<div className="potbar"><div><div className="lab">Potti</div><div className="pottot">{eur(koPot)}</div></div><div className="tiers"><div className="tier"><span className="medal g">1</span><div><div className="teur">{eur(koPot)}</div><div className="tiny">100 %</div></div></div></div></div>}
       {count===0&&<div className="card"><div className="note">Pudotuspeliveikkauksia ei ole vielä tehty. Voit osallistua Pudotuspelit-välilehdellä.</div></div>}
 
       <KOLive koBracket={koBracket} koPreds={koPreds} today={todayISO()} reveal={locked}/>
@@ -750,7 +752,7 @@ function KO({koBracket,koConfig,koPreds}){
                   <td><span style={{fontWeight:800,fontSize:16,display:"inline-flex",alignItems:"center",gap:6}}>{r.p.name||r.id}{m&&<span className={"medal "+m}>{prizes[i].rank}</span>}{locked&&<span className="chev">›</span>}</span></td>
                   <td><span className="tot" style={{color:locked&&i===0?"var(--grn)":"var(--ink)"}}>{r.total}</span></td>
                   {locked?<td><div className="cellbox" style={{textAlign:"center"}}><div className="nm" style={{color:"var(--teal)"}}>{r.kaavio} p</div></div></td>:<td><LockedCell/></td>}
-                  {locked?<td>{(()=>{const co=koTeamOut(koBracket,r.champTeam);return <div className={"cellbox"+(co?" out":"")} style={{textAlign:"right"}}><div className="nm" style={!co&&r.champTeam?{color:"var(--amb)"}:null}>{r.champTeam?<span className="flag">{flag(r.champTeam)}</span>:null}{r.champTeam||"—"}{r.champTeam?<span className="x2">×2</span>:null}</div><div className="pts">{r.champTeam?(r.mestari+" p"):"0 p"}{co?" · tippunut":""}</div></div>;})()}</td>:<td><LockedCell/></td>}
+                  {locked?<td>{(()=>{const co=koTeamOut(koBracket,r.champTeam);return <div className={"cellbox"+(co?" out":"")} style={{textAlign:"right"}}><div className="nm" style={!co&&r.champTeam?{color:"var(--ink)"}:null}>{r.champTeam?<span className="flag">{flag(r.champTeam)}</span>:null}{r.champTeam||"—"}{r.champTeam?<span className="x2">×2</span>:null}</div><div className="pts">{r.champTeam?(r.mestari+" p"):"0 p"}{co?" · tippunut":""}</div></div>;})()}</td>:<td><LockedCell/></td>}
                 </tr>
               );})}
             </tbody>
@@ -798,7 +800,7 @@ function KOKortti({r,koBracket,onBack}){
       <div className="row wrapf" style={{gap:22}}>
         <div>
           <div className="lab">Oma mestari</div>
-          <div className={"prow"+(co?" out":"")}><span style={{fontWeight:700,color:!co&&r.champTeam?"var(--amb)":null}}>{r.champTeam?<span className="flag" style={co?{opacity:.4,filter:"grayscale(1)"}:null}>{flag(r.champTeam)}</span>:null}{r.champTeam||"—"}</span>{r.champTeam?<span className="x2">×2</span>:null}<span className="tiny" style={{marginLeft:8}}>{r.champTeam?(r.mestari+" p"):""}{co?" · tippunut":""}</span></div>
+          <div className={"prow"+(co?" out":"")}><span style={{fontWeight:700,color:!co&&r.champTeam?"var(--ink)":null}}>{r.champTeam?<span className="flag" style={co?{opacity:.4,filter:"grayscale(1)"}:null}>{flag(r.champTeam)}</span>:null}{r.champTeam||"—"}</span>{r.champTeam?<span className="x2">×2</span>:null}<span className="tiny" style={{marginLeft:8}}>{r.champTeam?(r.mestari+" p"):""}{co?" · tippunut":""}</span></div>
         </div>
       </div>
     </div>
@@ -1114,7 +1116,7 @@ function App(){
               </div>
             </div>
           );
-        if(koView==="ko") return <Fragment>{toggle}<KO koBracket={koBracket} koConfig={koConfig} koPreds={koPreds}/></Fragment>;
+        if(koView==="ko") return <Fragment>{toggle}<KO koBracket={koBracket} koConfig={koConfig} koPreds={koPreds} mainPot={Object.keys(preds).length*(config.stake||10)}/></Fragment>;
         if(koView==="kaavio") return <Fragment>{toggle}<KOTree koBracket={koBracket} koPreds={koPreds} koConfig={koConfig}/></Fragment>;
         return <Fragment>
             {toggle}
@@ -1374,7 +1376,7 @@ function PayPill({paid,stake,full}){
 function eur(x){ if(x==null) return ""; const r=Math.round(x*100)/100; return (r%1===0)?(r+" €"):(r.toFixed(2).replace(".",",")+" €"); }
 function computePrizes(rows,pot){ const tier=[0.6,0.3,0.1]; const n=rows.length; const res=[]; let i=0;
   while(i<n){ let j=i; while(j+1<n && rows[j+1].total===rows[i].total) j++; let sum=0; for(let p=i;p<=j;p++) sum+=(tier[p]||0)*pot; const each=sum/(j-i+1); for(let k=i;k<=j;k++) res[k]={rank:i+1,prize:each}; i=j+1; } return res; }
-function PotBar({count,played,total,stake}){ const pot=count*stake; const ts=[["1",pot*0.6,60,"g"],["2",pot*0.3,30,"s"],["3",pot*0.1,10,"b"]];
+function PotBar({count,played,total,stake}){ const pot=count*stake*0.9; const ts=[["1",pot*0.6,60,"g"],["2",pot*0.3,30,"s"],["3",pot*0.1,10,"b"]];
   return (<div className="potbar">
     <div><div className="lab">Potti</div><div className="pottot">{eur(pot)}</div></div>
     <div className="tiers">{ts.map(([r,a,p,c])=><div key={r} className="tier"><span className={"medal "+c}>{r}</span><div><div className="teur">{eur(a)}</div><div className="tiny">{p} %</div></div></div>)}</div>
@@ -1664,7 +1666,7 @@ function Saannot({stake}){
 
       <div className="card">
         <div className="lab" style={{color:"var(--blue2)"}}>Potti ja palkinnot</div>
-        <p style={{margin:"6px 0 0"}}>Palkinnot jaetaan: 1. sija 60 %, 2. sija 30 % ja 3. sija 10 %. Tasatilanteessa kyseisten sijojen palkinnot jaetaan tasan.</p>
+        <p style={{margin:"6px 0 0"}}>Potista 90 % jaetaan pääkisan parhaille: 1. sija 60 %, 2. sija 30 % ja 3. sija 10 %. Loput 10 % menee pudotuspelin voittajalle. Tasatilanteessa kyseisten sijojen palkinnot jaetaan tasan.</p>
       </div>
 
       <div className="card">
@@ -1674,7 +1676,7 @@ function Saannot({stake}){
 
       <div className="card" style={{borderColor:"#2b3a7a"}}>
         <div className="lab" style={{color:"var(--blue2)"}}>Pudotuspeliveikkaus</div>
-        <p style={{margin:"6px 0 8px"}}>Pudotuspeliveikkaus on erillinen pääkisasta eikä vaikuta sen pisteisiin. Täytä pudotuspelien kaavio jatkoonmenijöistä aina finaaliin saakka. Kaavio avautuu, kun lohkovaihe on pelattu. Veikkaukseen ei liity erillistä panosta.</p>
+        <p style={{margin:"6px 0 8px"}}>Pudotuspeliveikkaus on erillinen pääkisasta eikä vaikuta sen pisteisiin. Täytä pudotuspelien kaavio jatkoonmenijöistä aina finaaliin saakka; joukkueet täydentyvät kaavioon sitä mukaa kun ne varmistuvat lohkovaiheessa. Pudotuspeliin ei liity erillistä panosta, mutta sen voittaja saa 10 % potista (tasatilanteessa palkinto jaetaan voittajien kesken).</p>
         <p className="tiny" style={{margin:"6px 0 0"}}><b>Takaraja:</b> täytä pudotuspeliveikkaus viimeistään 28.6.2026 klo 21.00, tunti ennen ensimmäistä pudotuspeliottelua. Järjestäjä lukitsee veikkaukset silloin.</p>
         <p className="tiny" style={{margin:"8px 0 4px",fontWeight:700}}>Kaaviopisteet (per oikein veikattu jatkoonmenijä)</p>
         <div className="row wrapf" style={{gap:"8px 14px",margin:"4px 0"}}>
@@ -1823,7 +1825,7 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
           <div className="row wrapf" style={{marginTop:6}}>
             <input type="number" min="0" step="1" style={{width:120}} defaultValue={config.stake!=null?config.stake:10}
               onBlur={async e=>{try{await docRef("config").set({stake:Number(e.target.value)||0},{merge:true});fl("Panostus tallennettu");}catch(x){fl(x.message);}}}/>
-            <span className="tiny">Potti & palkinnot (60/30/10 %) lasketaan tästä ja osallistujamäärästä.</span></div>
+            <span className="tiny">Pääkisan palkinnot (90 %, jako 60/30/10) ja pudotuspelin palkinto (10 %) lasketaan tästä ja osallistujamäärästä.</span></div>
         </div>}
       </div>
 
