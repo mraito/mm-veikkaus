@@ -818,7 +818,7 @@ function KOTree({koBracket,koPreds,koConfig}){
   const useP=sel&&koPreds&&koPreds[sel];
   const W=useP?(koPreds[sel].bracket||{}):(B.winners||{});
   if(!koReadyTeams(teams)){
-    const Hs=1024;
+    const Hs=1240;
     const colsS=[{key:"R32",title:"Round 32"},{key:"R16",title:"Round 16"},{key:"QF",title:"Puolivälierät"},{key:"SF",title:"Välierät"},{key:"FIN",title:"Finaali"}];
     const slotCell=(key,sl,side)=>{ if(key!=="R32") return null; const pair=teams[sl]||{}; const team=side===0?pair.a:pair.b; if(team) return {team}; const parts=(KO_R32_DESC[sl]||"").split(" v "); return {label:(side===0?parts[0]:parts[1])||"?"}; };
     const cell=(c)=> c&&c.team
@@ -847,7 +847,7 @@ function KOTree({koBracket,koPreds,koConfig}){
         <div className="kt-box" style={{width:200}}>{cell(null)}{cell(null)}</div></div>
     </div>);
   }
-  const H=1024;
+  const H=1240;
   const cols=[{key:"R32",title:"Round 32"},{key:"R16",title:"Round 16"},{key:"QF",title:"Puolivälierät"},{key:"SF",title:"Välierät"},{key:"FIN",title:"Finaali"}];
   const trow=(t,win,dim)=> t
     ? <div className={"kt-trow"+(win?" kt-win":"")+(dim?" kt-dim":"")}>{flag(t)}<span className="kt-nm">{t}</span></div>
