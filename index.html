@@ -119,6 +119,7 @@ button.ghost:hover{border-color:var(--grn)}
 .cellbox .pts{font-family:'Spline Sans Mono';font-size:12px;color:var(--teal);font-weight:600}
 .cellbox.out .pts{color:var(--grey)}
 .flag{margin-right:0;display:inline-flex;align-items:center;vertical-align:middle}
+.cellbox.out .flagimg,.prow.out .flagimg{filter:grayscale(1);opacity:.5}
 .flagimg{width:22px;height:16px;object-fit:cover;border-radius:3px;margin-right:6px;vertical-align:-3px;box-shadow:0 0 0 1px rgba(255,255,255,.1);background:#0b1426}
 
 /* ---- kärkitaulu: leveä pöytä ---- */
@@ -1784,6 +1785,7 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
   useEffect(()=>{setTsDraft(teamstats);},[teamstats]);
   const setTeam=(t,f,v)=>setTsDraft(s=>({...s,[t]:{...(s[t]||{}),[f]:v}}));
   const champTeams=[...new Set(Object.values(preds).map(p=>p.team).filter(Boolean))];
+  const playerOnlyCountries=[...new Set(Object.values(preds).flatMap(p=>POS_ORDER.map(pos=>p.picks&&p.picks[pos]&&p.picks[pos].country)).filter(Boolean))].filter(c=>!champTeams.includes(c)).sort((a,b)=>a.localeCompare(b,"fi"));
   const tsFilled=map=>Object.keys(map||{}).filter(t=>{const x=map[t]||{};return (Number(x.wins)>0)||x.champ||x.out;}).length;
   const saveTs=async()=>{
     const before=tsFilled(teamstats), after=tsFilled(tsDraft);
@@ -1873,37 +1875,27 @@ function AdminPanel({matches,preds,config,teamstats,playerstats}){
 
       {/* JOUKKUEET: VOITOT / MESTARUUS */}
       <div className="card">
-        <div className="lab">Mestarijoukkueet</div>
-        <h2 style={{fontSize:18,margin:"4px 0 8px"}}>Voitot & mestaruus</h2>
-        <div className="note">Ryhmävaiheen voitot lasketaan automaattisesti tallennetuista ottelutuloksista (5 p/voitto). Lisää alle vain mahdolliset pudotuspelivoitot ja merkitse lopulta mestari (10 p).</div>
+        <div className="lab">Maiden pisteet ja tila</div>
+        <h2 style={{fontSize:18,margin:"4px 0 8px"}}>Voitot, mestaruus & tippuminen</h2>
+        <div className="note">Ryhmävaiheen voitot lasketaan automaattisesti tallennetuista ottelutuloksista (5 p/voitto). Lisää pudotuspelivoitot, merkitse mestari (10 p) ja tippuminen. Tippunut maa näkyy tulostaulukossa harmaana pelaajineen ja mestarivalintoineen — kerätyt pisteet säilyvät.</div>
+        <div className="tiny" style={{color:"var(--blue2)",fontWeight:800,margin:"10px 0 2px"}}>Mestarimaat</div>
         {champTeams.length===0?<div className="note">Kukaan ei ole vielä valinnut mestarijoukkuetta.</div>:<>
           {champTeams.map(t=>{ const ts=tsDraft[t]||{}; const aw=autoGroupWins(t,matches);
             return <div className="row between wrapf" key={t} style={{padding:"8px 0",borderBottom:"1px dashed var(--line)",gap:10}}>
               <span style={{fontWeight:700,flex:1}}><span className="flag">{flag(t)}</span>{t} <span className="tiny" style={{fontWeight:400}}>· ryhmävoitot autom. {aw}</span></span>
               <label className="row tiny" style={{gap:6}}>+ pudotuspelivoitot<input className="sc" inputMode="numeric" value={ts.wins||""} placeholder="0" onChange={e=>/^[0-9]{0,2}$/.test(e.target.value)&&setTeam(t,"wins",e.target.value)}/></label>
               <label className="row tiny" style={{gap:6}}><input type="checkbox" checked={!!ts.champ} onChange={e=>setTeam(t,"champ",e.target.checked)}/>Mestari</label>
+              <label className="row tiny" style={{gap:6}}><input type="checkbox" checked={!!ts.out} onChange={e=>setTeam(t,"out",e.target.checked)}/>Tippunut</label>
             </div>; })}
         </>}
-        <div style={{textAlign:"center",marginTop:12}}><button className="act" onClick={saveTs}>Tallenna joukkuetiedot</button></div>
-      </div>
-
-      {/* TIPPUMISET (kaikki 48) */}
-      <div className="card">
-        <div className="section-h" onClick={()=>setOpen(o=>({...o,elim:!o.elim}))}><span>Tippuneet maat</span><span>{open.elim?"–":"+"}</span></div>
-        {open.elim&&<div>
-          <p className="tiny">Merkitse maa tippuneeksi pudotuspelien edetessä → sen pelaajat ja mestari­valinnat näkyvät tulostaulukossa harmaana. Kerätyt pisteet säilyvät.</p>
-          {Object.keys(GROUPS).map(g=>(
-            <div key={g} style={{marginTop:8}}>
-              <div className="tiny" style={{color:"var(--blue2)",fontWeight:800}}>Lohko {g}</div>
-              <div className="row wrapf" style={{gap:8,marginTop:4}}>
-                {GROUPS[g].map(t=>{ const out=tsDraft[t]&&tsDraft[t].out;
-                  return <label key={t} className="row tiny" style={{gap:4,border:"1px solid var(--line)",borderRadius:8,padding:"5px 8px",opacity:out?.6:1}}>
-                    <input type="checkbox" checked={!!out} onChange={e=>setTeam(t,"out",e.target.checked)}/><span className="flag">{flag(t)}</span>{t}</label>; })}
-              </div>
-            </div>
-          ))}
-          <div style={{textAlign:"center",marginTop:12}}><button className="act" onClick={saveTs}>Tallenna tippumiset</button></div>
-        </div>}
+        <div className="tiny" style={{color:"var(--blue2)",fontWeight:800,margin:"16px 0 4px"}}>Pelaajien maat</div>
+        {playerOnlyCountries.length===0?<div className="note">Ei muita pelaajamaita kuin mestarimaat.</div>:
+          <div className="row wrapf" style={{gap:8}}>
+            {playerOnlyCountries.map(t=>{ const out=tsDraft[t]&&tsDraft[t].out;
+              return <label key={t} className="row tiny" style={{gap:4,border:"1px solid var(--line)",borderRadius:8,padding:"5px 8px",opacity:out?.6:1}}>
+                <input type="checkbox" checked={!!out} onChange={e=>setTeam(t,"out",e.target.checked)}/><span className="flag">{flag(t)}</span>{t}</label>; })}
+          </div>}
+        <div style={{textAlign:"center",marginTop:14}}><button className="act" onClick={saveTs}>Tallenna joukkuetiedot</button></div>
       </div>
 
       {/* KORJAA OSALLISTUJAN VALINTOJA */}
