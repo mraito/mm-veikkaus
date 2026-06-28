@@ -1125,7 +1125,9 @@ function App(){
             {toggle}
             <PotBar count={Object.keys(preds).length} played={matches.filter(m=>m.hg!==""&&m.hg!=null).length} total={matches.length} stake={config.stake||10}/>
             {config.locked&&!koLockedReady&&<Live matches={matches} preds={preds} today={todayISO()}/>}
-            {config.locked&&<Porssi preds={preds} playerstats={playerstats}/>}
+            {koLockedReady
+              ? <div className="livewrap"><ChampPorssi preds={preds} teamstats={teamstats} matches={matches}/><Porssi preds={preds} playerstats={playerstats}/></div>
+              : (config.locked&&<Porssi preds={preds} playerstats={playerstats}/>)}
             <Karki preds={preds} scores={scores} matches={matches} playerstats={playerstats} teamstats={teamstats} locked={config.locked} onOpen={id=>setDetail(id)} stake={config.stake||10}/>
           </Fragment>;
       })()}
@@ -1504,6 +1506,42 @@ function Porssi({preds,playerstats}){
         <div className="row wrapf" style={{gap:6,marginTop:5}}>
           {ch.map((c,j)=><span key={j} style={{fontSize:12,fontWeight:700,borderRadius:8,padding:"3px 9px",background:c[1]<0?"rgba(255,93,82,.13)":"rgba(57,229,124,.12)",color:c[1]<0?"var(--red)":"var(--teal)"}}>{c[0]} · {signp(c[1])}</span>)}
         </div>
+        <div className="tiny" style={{marginTop:6}}>Valinnut: {v.pickers.join(", ")}</div>
+      </div>
+    );})}
+    {arr.length>5&&<div style={{textAlign:"center",marginTop:10}}><span className="morechip" onClick={()=>setOpen(o=>!o)}>{open?"▴ vähemmän":"+"+rest+" ▾"}</span></div>}
+  </div>);
+}
+/* ===================== PISTEPÖRSSI (mestarimaat) ===================== */
+function ChampPorssi({preds,teamstats,matches}){
+  const [open,setOpen]=useState(false);
+  const map={};
+  Object.keys(preds).forEach(id=>{ const t=preds[id].team;
+    if(t){ if(!map[t]) map[t]={country:t,pickers:[]}; map[t].pickers.push(preds[id].name||id); } });
+  let arr=Object.values(map).map(v=>{ const ts=(teamstats&&teamstats[v.country])||{};
+    return {...v,pts:teamPoints(v.country,matches,teamstats),out:!!ts.out,gw:autoGroupWins(v.country,matches),kw:Number(ts.wins||0),champ:!!ts.champ}; });
+  if(arr.length===0) return null;
+  arr.sort((a,b)=>b.pts-a.pts || (a.country||"").localeCompare(b.country||"","fi"));
+  const show=open?arr:arr.slice(0,5); const rest=arr.length-show.length;
+  const parts=(v)=>{ const out=[];
+    if(v.gw) out.push(["Alkulohko: "+v.gw+(v.gw===1?" voitto":" voittoa"),v.gw*WIN_POINTS]);
+    if(v.kw) out.push(["Pudotuspeli: "+v.kw+(v.kw===1?" voitto":" voittoa"),v.kw*WIN_POINTS]);
+    if(v.champ) out.push(["Mestari",CHAMP_POINTS]);
+    return out; };
+  return (<div className="card">
+    <div className="lab" style={{color:"var(--blue2)"}}>Pistepörssi — mestarimaat</div>
+    {show.map((v,i)=>{ const ch=parts(v); return (
+      <div key={i} className="liverow" style={v.out?{opacity:.55}:null}>
+        <div className="row between" style={{alignItems:"center"}}>
+          <div style={{display:"flex",alignItems:"center",gap:9,minWidth:0}}>
+            <span className={"rank"+(i===0?" gold":"")} style={{minWidth:22,textAlign:"center"}}>{i+1}</span>
+            <div style={{minWidth:0}}><span style={{fontWeight:800,fontSize:15}}>{flag(v.country)} {v.country}</span>{v.out&&<span className="tiny"> · tippunut</span>}</div>
+          </div>
+          <span className="mono" style={{fontSize:18,fontWeight:700,color:v.pts<0?"var(--red)":"var(--teal)"}}>{signp(v.pts)} p</span>
+        </div>
+        {ch.length>0&&<div className="row wrapf" style={{gap:6,marginTop:5}}>
+          {ch.map((c,j)=><span key={j} style={{fontSize:12,fontWeight:700,borderRadius:8,padding:"3px 9px",background:"rgba(57,229,124,.12)",color:"var(--teal)"}}>{c[0]} · {signp(c[1])}</span>)}
+        </div>}
         <div className="tiny" style={{marginTop:6}}>Valinnut: {v.pickers.join(", ")}</div>
       </div>
     );})}
